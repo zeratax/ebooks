@@ -33,7 +33,7 @@ def tweet():
     # update Twitter status
     status = api.PostUpdate(text_model.make_short_sentence(140))
     print(status.text)
-    threading.Timer(60, tweet).start()
+    threading.Timer(10800, tweet).start()
 
 tweet()
 
