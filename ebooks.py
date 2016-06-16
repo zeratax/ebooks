@@ -20,20 +20,35 @@ async def on_ready():
 @client.event
 async def on_message(message):
     with open("log.txt", "a") as myfile:
-        myfile.write(message.content + " ")
-        print(message.content)
+        myfile.write(message.clean_content + " ")
+        print(message.clean_content)
+
+    if client.user.mentioned_in(message):
+        with open("log.txt") as f:
+            text = f.read()
+            
+        text_model = markovify.Text(text)
+        shitpost = text_model.make_short_sentence(80)
+        if shitpost is not None:
+            shitpost = shitpost.format(message)
+            await client.send_message(message.channel, shitpost)  
+        else:
+            await client.send_message(message.channel, 'Fuck off~')
 
 def tweet():
-    # Get raw text as string.
-    with open("log.txt") as f:
-    	text = f.read()
 
-    # Build the model.
+    with open("log.txt") as f:
+        text = f.read()
+
     text_model = markovify.Text(text)
-    # update Twitter status
-    status = api.PostUpdate(text_model.make_short_sentence(140))
-    print(status.text)
-    threading.Timer(10800, tweet).start()
+
+    shittweet = text_model.make_short_sentence(80)
+    print(shittweet)
+    if shittweet is not None:
+        if (len(shittweet) > 0 and len(shittweet) < 141):
+            status = api.PostUpdate(shittweet)
+            print(status.text)
+    threading.Timer(3600, tweet).start()
 
 tweet()
 
