@@ -26,12 +26,12 @@ async def on_message(message):
     yesno = urllib.request.urlopen('https://pastebin.com/raw/90WCeZp9').read().decode('utf-8').split() # it's a file like object and works just like a file
 
     if client.user.mentioned_in(message):
-        if message.content.endswith('??'):
+        if message.content.endswith('?'):
             if 'or' in message.clean_content:
                 REMOVE_LIST = ["@tsumino_ebooks", "\?"]
                 remove = '|'.join(REMOVE_LIST)
                 regex = re.compile(r'('+remove+')', flags=re.IGNORECASE)
-                shitdecision = regex.sub("", message.clean_content).split("or")
+                shitdecision = regex.sub("", message.clean_content).split(" or ")
                 shitdecision = random.choice (shitdecision).format(message)
                 await client.send_message(message.channel, shitdecision)
                 print(shitdecision)
