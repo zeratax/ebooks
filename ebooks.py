@@ -1,11 +1,12 @@
-import discord, asyncio, logging, time, threading, markovify, twitter
+import discord, asyncio, logging, time, threading, markovify, twitter, urllib, random, re
 logging.basicConfig(level=logging.INFO)
 
+
 client = discord.Client()
-api = twitter.Api(consumer_key='token',
-                      consumer_secret='token',
-                      access_token_key='token',
-                      access_token_secret='token')
+api = twitter.Api(consumer_key='2EVv8l61oApXeOJZyrypNR2CD',
+                      consumer_secret='rOr3TZkfPu2JZJJ00gAZtwZKCxhIAxt9bigYwGje1StIiPw3az',
+                      access_token_key='740264054997024772-DpS3BQBQllWd6cnJ3WHbskCoHIpDPwT',
+                      access_token_secret='x05MOJ3NdQ7eRWIt7U8A412Hl0uZv8LIy2XhQ6JElbZGE')
 print('Twitter: Logged in as')
 print(api.VerifyCredentials())
 print('------')
@@ -14,7 +15,6 @@ print('------')
 async def on_ready():
     print('Discord: Logged in as')
     print(client.user.name)
-    
     print(client.user.id)
     print('------')
 
@@ -27,12 +27,12 @@ async def on_message(message):
 
     if client.user.mentioned_in(message):
         if message.content.endswith('?'):
-            if 'or' in message.clean_content:
-                REMOVE_LIST = ["@tsumino_ebooks", "\?"]
+            if ' or ' in message.clean_content:
+                REMOVE_LIST = ["@tsumino_ebooks", "\?", "should I rather", "should I", "would you rather", "what do you prefer", "what is better", "do you prefer", "what should I do", "what could I do" , "would you prefer", "decide between", "what do you like more", "decide for me between"]
                 remove = '|'.join(REMOVE_LIST)
                 regex = re.compile(r'('+remove+')', flags=re.IGNORECASE)
-                shitdecision = regex.sub("", message.clean_content).split(" or ")
-                shitdecision = random.choice (shitdecision).format(message)
+                shitdecision = re.split('; |, | or |\n', regex.sub("", " ".join(re.sub(r'.*:', '', message.clean_content).split())))
+                shitdecision = " ".join(random.choice (shitdecision).format(message).split())
                 await client.send_message(message.channel, shitdecision)
                 print(shitdecision)
             else:
@@ -73,4 +73,4 @@ def tweet():
 
 tweet()
 
-client.run('token')
+client.run('MTg5Nzc3NjgwOTgyNDc0NzUz.CjiHvQ.AmGKxFLnpvW243uMlZiqQs2OEX4')
