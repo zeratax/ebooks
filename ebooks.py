@@ -200,19 +200,5 @@ def shitimage(servername, channel):
     out.save("server/" + servername + "/output/" + imagename);
     print(imagename)
     return imagename
-
-
-
-
-# def tweet():
-
-#    shittweet = shitpost(important=False)
-#    if shittweet is not None:
-#        if (len(shittweet) > 0 and len(shittweet) < 141):
-#            status = api.PostUpdate(shittweet)
-#            print(status.text)
-#        threading.Timer(3600, tweet).start()
-
-# tweet()
-
+    
 client.run('token')
