@@ -1,5 +1,4 @@
-import discord, asyncio, logging, time, threading, markovify, psutil, posixpath, platform, re, requests, os, time, shutil, glob, textwrap
-import json
+import discord, asyncio, logging, time, threading, markovify, psutil, posixpath, platform, re, requests, os, time, shutil, glob, textwrap, json
 from pprint import pprint
 import random
 from random import randint
@@ -77,7 +76,8 @@ async def on_message(message):
 		if len(os.listdir("server/" + servername + "/images/")) > 0:
 			latest_file = max(glob.iglob("server/" + servername + "/images/*"), key=os.path.getctime)
 		else:
-			latest_file = max(glob.iglob("images/*"), key=os.path.getctime)
+			meme_image(shitpost(servername, message.channel), servername)
+			latest_file = max(glob.iglob("server/" + servername + "/images/*"), key=os.path.getctime)
 		if client.user.mentioned_in(message) or servername == "None":
 			if "create meme " in message.content.lower():
 				client.send_typing(message.channel)
@@ -86,7 +86,7 @@ async def on_message(message):
 				regex = re.compile(r'('+remove+')', flags=re.IGNORECASE)
 				text = regex.sub("", message.clean_content)
 				print("Text: " + text)
-				await client.send_file(message.channel, "server/" + servername + "/output/" + meme_image(text, servername))
+				await client.send_file(message.channel, meme_image(text, servername))
 			elif message.content.endswith('?'):
 				if " or " in message.clean_content.lower():
 					REMOVE_LIST = ["@", my_name, "\?", "should I rather", "should I", "would you rather", "what do you prefer", "who do you prefer", "do you prefer", "what is better", "what should I do", "what could I do" , "would you prefer", "decide between", "what do you like more", "decide for me between"]
@@ -107,7 +107,10 @@ async def on_message(message):
 					await client.send_message(message.channel, shitanswer)
 			elif " pic" in message.content.lower() or "pic " in message.content.lower():
 				client.send_typing(message.channel)
-				await client.send_file(message.channel, "server/" + servername + "/output/" + shitimage(servername, message.channel))
+				await client.send_file(message.channel, shitimage(servername, message.channel))
+			elif "create nut" in message.content.lower():
+				client.send_typing(message.channel)
+				await client.send_file(message.channel, nut_image(latest_file, servername, message.channel))	
 			elif "info" in message.content.lower():
 				num_lines = 0
 				num_words = 0
@@ -205,7 +208,7 @@ def getUptime():
 
 def shitpost(servername, channel):
 	client.send_typing(channel)
-	print("creating shitpost for server " + servername)
+	print("Creating shitpost for server " + servername)
 	with open("server/" + servername + "/log.txt") as f:
 		text = f.read()
 
@@ -231,7 +234,7 @@ def meme_image(text, servername):
 	margin = data["memes"][meme]["size"]["left"]
 	offset = data["memes"][meme]["size"]["up"]
 	style = data["memes"][meme]["style"]
-	print("Creating meme: " + data["memes"][meme]["image"])
+	print("Creating meme " + data["memes"][meme]["image"] + " for server " + servername)
 
 	if not os.path.isfile("images/" + imagename):
 		print("Downloading new Images")
@@ -251,11 +254,7 @@ def meme_image(text, servername):
 	offset += (data["memes"][meme]["size"]["bottom"]-offset)/2-(meme_font.getsize(wrap[0])[1]*len(wrap)/2)
 	if offset < data["memes"][meme]["size"]["up"]:
 		offset = data["memes"][meme]["size"]["up"]
-	print(offset)
 	for line in wrap:
-		w, h = d.textsize(line)
-		print(w)
-		print(dif)
 		d.text((margin+(data["memes"][meme]["size"]["center"]-meme_font.getsize(line)[0])/2, offset), line, font=meme_font, fill=data["styles"][style]["font_color"])
 		offset += meme_font.getsize(text)[1]
 		if offset > data["memes"][meme]["size"]["bottom"] - meme_font.getsize(line)[1]:
@@ -263,10 +262,37 @@ def meme_image(text, servername):
 	out = Image.alpha_composite(base, txt)
 	out.save("server/" + servername + "/output/" + imagename);
 	print("Meme saved to: server/" + servername + "/output/" + imagename)
-	return imagename
+	return "server/" + servername + "/output/" + imagename
+
+def nut_image(imagename, servername, channel):
+	print("Creating nutimage using " + imagename + " for server " + servername)
+	if not os.path.isfile("images/nutpic.png"):
+		print("Downloading new Images")
+		imagedownload("https://jii.moe/E1SNInYY-.png", "images/", "nutpic.png")
+
+	frame = Image.open("images/nutpic.png").convert("RGBA")
+	pic = Image.open(imagename)
+	box = [179, 21, 852, 1134]
+	if pic.size[0] < pic.size[1]:
+		scale = (box[2]/pic.size[0])
+		pic = pic.resize((box[2],int(pic.size[1]*scale)), PIL.Image.ANTIALIAS)
+
+	else:
+		scale = (box[3]/pic.size[1])
+		pic = pic.resize(((int(pic.size[0]*scale),box[3])), PIL.Image.ANTIALIAS)
+	center = [(pic.size[0]-box[2])/2, (pic.size[1]-box[3])/2]
+	
+	pic = pic.crop((center[0],center[1],center[0]+box[2],center[1]+box[3]))
+	
+	frame.paste(pic,(box[0],box[1]))
+
+	frame.save("server/" + servername + "/output/nutpic.png");
+	print("Nutpic saved to: server/" + servername + "/output/nutpic.png")
+	return("server/" + servername + "/output/nutpic.png")
+
 
 def shitimage(servername, channel):
-	print("creating shitimage for server " + servername)
+	print("Creating shitimage for server " + servername)
 	imagename = random.choice(os.listdir("server/" + servername + "/images/"))
 	base = Image.open("server/" + servername + "/images/" + imagename).convert('RGBA')
 	width, height = base.size
@@ -274,31 +300,34 @@ def shitimage(servername, channel):
 		imagename = random.choice(os.listdir("images/"))
 		base = Image.open("images/" + imagename).convert('RGBA')
 		width, height = base.size
-	# make a blank image for the text, initialized to transparent text color
-	txt = Image.new('RGBA', base.size, (255,255,255,0))
-	quote = shitpost(servername, channel)
-	img_fraction = 0.50
-	dankfont = 'fonts/' + random.choice(os.listdir('fonts/'))
-	print(dankfont)
-	fontsize = 1;
-	font = ImageFont.truetype(dankfont  , fontsize)
-	while font.getsize(quote)[0] < img_fraction*width:
-		# iterate until the text size is just larger than the criteria
-		fontsize += 1
-		font = ImageFont.truetype(dankfont, fontsize)
-	fontsize -= 1
-	fnt = ImageFont.truetype(dankfont, fontsize)
-	# get a drawing context
-	d = ImageDraw.Draw(txt)
-	randheight = randint(40,height)
-	d.text((31,randheight + 1), quote, font=fnt, fill=(255,255,255,255))
-	d.text((29,randheight + 1), quote, font=fnt, fill=(255,255,255,255))
-	d.text((31,randheight - 1), quote, font=fnt, fill=(255,255,255,255))
-	d.text((29,randheight - 1), quote, font=fnt, fill=(255,255,255,255))
-	d.text((30,randheight), quote, font=fnt, fill=(0,0,0,255))
-	out = Image.alpha_composite(base, txt)
-	out.save("server/" + servername + "/output/" + imagename);
-	print(imagename)
-	return imagename
+		return meme_image(shitpost(servername, channel), servername)
+	else:
+		# make a blank image for the text, initialized to transparent text color
+		txt = Image.new('RGBA', base.size, (255,255,255,0))
+		quote = shitpost(servername, channel)
+		img_fraction = 0.50
+		dankfont = 'fonts/' + random.choice(os.listdir('fonts/'))
+		print(dankfont)
+		fontsize = 1;
+		font = ImageFont.truetype(dankfont  , fontsize)
+		while font.getsize(quote)[0] < img_fraction*width:
+			# iterate until the text size is just larger than the criteria
+			fontsize += 1
+			font = ImageFont.truetype(dankfont, fontsize)
+		fontsize -= 1
+		fnt = ImageFont.truetype(dankfont, fontsize)
+		# get a drawing context
+		d = ImageDraw.Draw(txt)
+		randheight = randint(40,height)
+		d.text((31,randheight + 1), quote, font=fnt, fill=(255,255,255,255))
+		d.text((29,randheight + 1), quote, font=fnt, fill=(255,255,255,255))
+		d.text((31,randheight - 1), quote, font=fnt, fill=(255,255,255,255))
+		d.text((29,randheight - 1), quote, font=fnt, fill=(255,255,255,255))
+		d.text((30,randheight), quote, font=fnt, fill=(0,0,0,255))
+		out = Image.alpha_composite(base, txt)
+		out.save("server/" + servername + "/output/" + imagename);
+		print(imagename)
+		return "server/" + servername + "/output/" + imagename
+
 
 client.run('token')
