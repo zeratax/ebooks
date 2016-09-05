@@ -18,8 +18,7 @@ if not os.path.exists("fonts/"):
 	os.makedirs("fonts")
 if not os.path.exists("server/"):
 	os.makedirs("server")
-
-
+	
 client = discord.Client()
 
 p = psutil.Process(os.getpid())
@@ -69,24 +68,48 @@ async def on_message(message):
 					message_to_bot = True
 				else:
 					myfile.write(message.clean_content.replace("@", "") + ". ")
-		images = re.findall('(https?:\/\/.*\.(?:png|jpg|jpeg))', message.clean_content.lower())
+		images = re.findall('(?i)https?:\/\/.*\.(?:png|jpg|jpeg|gif)', message.clean_content)
 		for image in images:
 			image_in_message = True
 			imagedownload(image, "server/" + servername + "/images/")
 		if len(os.listdir("server/" + servername + "/images/")) > 0:
 			latest_file = max(glob.iglob("server/" + servername + "/images/*"), key=os.path.getctime)
 		else:
-			meme_image(shitpost(servername, message.channel), servername)
+			meme_image(shitpost(servername), servername)
 			latest_file = max(glob.iglob("server/" + servername + "/images/*"), key=os.path.getctime)
 		if client.user.mentioned_in(message) or servername == "None":
-			if "create meme " in message.content.lower():
+			if "meme_text" in message.content.lower():
 				client.send_typing(message.channel)
-				REMOVE_LIST = ["@", my_name , "create meme "]
+				REMOVE_LIST = ["@", my_name , "meme_text"]
 				remove = '|'.join(REMOVE_LIST)
 				regex = re.compile(r'('+remove+')', flags=re.IGNORECASE)
-				text = regex.sub("", message.clean_content)
+				text = regex.sub("", message.clean_content).strip()
+				if len(text) == 0:
+					print("no text entered")
+					text = shitpost(servername)
 				print("Text: " + text)
-				await client.send_file(message.channel, meme_image(text, servername))
+				await client.send_file(message.channel, meme_text(text, servername))
+			elif "meme_image" in message.content.lower():
+				client.send_typing(message.channel)
+				REMOVE_LIST = ["@", my_name , "meme_image", "(?i)https?:\/\/.*\.(?:png|jpg|jpeg|gif)"]
+				remove = '|'.join(REMOVE_LIST)
+				regex = re.compile(r'('+remove+')', flags=re.IGNORECASE)
+				text = regex.sub("", message.clean_content).strip().lower()
+				data = json.loads(urllib.request.urlopen('https://pastebin.com/raw/fAHJ6gbC').read().decode('utf-8'))
+				if text in data["memes_images"]: 
+					print("Meme: " + text)
+					await client.send_file(message.channel, meme_image(latest_file,text, servername))	
+				else:
+					available_memes = ""
+					for memes in data["memes_images"]:	
+						available_memes += memes + "\n"
+					await client.send_message(message.channel, "You need to choose one of the following memes: \n**" + available_memes + "**")
+			elif " rate" in message.content.lower() or "rate " in message.content.lower():
+					rating = randint(1,10)
+					if rating == 10:
+						await client.send_message(message.channel, "i r8 8/8 m8")
+					else:
+						await client.send_message(message.channel, str(rating) + "/10 " + random.choice(["memepoints", "points", "goodboipoints", "faggotpoints"]) + ".")
 			elif message.content.endswith('?'):
 				if " or " in message.clean_content.lower():
 					REMOVE_LIST = ["@", my_name, "\?", "should I rather", "should I", "would you rather", "what do you prefer", "who do you prefer", "do you prefer", "what is better", "what should I do", "what could I do" , "would you prefer", "decide between", "what do you like more", "decide for me between"]
@@ -107,10 +130,7 @@ async def on_message(message):
 					await client.send_message(message.channel, shitanswer)
 			elif " pic" in message.content.lower() or "pic " in message.content.lower():
 				client.send_typing(message.channel)
-				await client.send_file(message.channel, shitimage(servername, message.channel))
-			elif "create nut" in message.content.lower():
-				client.send_typing(message.channel)
-				await client.send_file(message.channel, nut_image(latest_file, servername, message.channel))	
+				await client.send_file(message.channel, shitimage(servername))
 			elif "info" in message.content.lower():
 				num_lines = 0
 				num_words = 0
@@ -132,17 +152,21 @@ This bot was created by **""" + (await client.application_info()).owner.name + "
 			elif "help" in message.content.lower():
 				await client.send_message(message.channel, """*Mention me with:*
 
-**set username** to change my username (this only works twice per hour)
+**set username** to change my username *(this only works twice per hour)*
 
-	`""" + client.user.mention + """" set username NEWUSERNAME`
+	`""" + client.user.mention + """" set username newusername`
 
 **set avatar** to change my avatar
 
-	`""" + client.user.mention + """ set avatar https://website.tld/imageurl`
+	`""" + client.user.mention + """ set avatar http(s)://website.tld/imageurl`
 
-**create meme** to get a dank meme
+**meme_text** to get a dank meme *(if no text is given a random sentence will be generated)*
 
-	`""" + client.user.mention + """ create meme text`
+	`""" + client.user.mention + """ meme_text sentence`
+
+**meme_image** to get a meme_image *(uses the last posted image on the server)*
+
+	`""" + client.user.mention + """ meme_image`
 
 **pic** to receive a custom image shitpost
 
@@ -152,7 +176,7 @@ This bot was created by **""" + (await client.application_info()).owner.name + "
 
 	`""" + client.user.mention + " invite`")
 			elif "invite" in message.content.lower():
-				await client.send_message(message.channel, discord.utils.oauth_url((await client.application_info())[0], permissions=None, server=None, redirect_uri="https://gezf.de/ebooks/"))
+				await client.send_message(message.channel, discord.utils.oauth_url((await client.application_info())[0], permissions=None, server=None))
 			elif "set avatar " in message.content.lower():
 				print("new avatar: " + latest_file)
 				if message.author.id == (await client.application_info()).owner.id:
@@ -176,7 +200,7 @@ This bot was created by **""" + (await client.application_info()).owner.name + "
 				else:
 					await client.send_message(message.channel, "**You are not allowed to do that!**")
 			else:
-				await client.send_message(message.channel, shitpost(servername, message.channel))
+				await client.send_message(message.channel, shitpost(servername))
 	else:
 		print("message sent by bot")
 
@@ -206,8 +230,7 @@ def imagedownload(image, dir, filename=None):
 def getUptime():
 	return time.time() - startTime
 
-def shitpost(servername, channel):
-	client.send_typing(channel)
+def shitpost(servername):
 	print("Creating shitpost for server " + servername)
 	with open("server/" + servername + "/log.txt") as f:
 		text = f.read()
@@ -224,74 +247,96 @@ def shitpost(servername, channel):
 				shitpost = "fuck off~"
 				return shitpost
 
-def meme_image(text, servername):
+def meme_text(text, servername):
 	data = json.loads(urllib.request.urlopen('https://pastebin.com/raw/fAHJ6gbC').read().decode('utf-8'))
-	meme = randint(0,(len(data["memes"]) -1))
-	imagename = data["memes"][meme]["image"]
+	meme = randint(0,(len(data["memes_text"]) -1))
+	imagename = data["memes_text"][meme]["image"]
 
 	
 
-	margin = data["memes"][meme]["size"]["left"]
-	offset = data["memes"][meme]["size"]["up"]
-	style = data["memes"][meme]["style"]
-	print("Creating meme " + data["memes"][meme]["image"] + " for server " + servername)
+	margin = data["memes_text"][meme]["size"]["left"]
+	offset = data["memes_text"][meme]["size"]["up"]
+	style = data["memes_text"][meme]["style"]
+	print("Creating meme " + data["memes_text"][meme]["image"] + " for server " + servername)
 
 	if not os.path.isfile("images/" + imagename):
 		print("Downloading new Images")
-		imagedownload(data["memes"][meme]["image_url"], "images/", imagename)
+		imagedownload(data["memes_text"][meme]["image_url"], "images/", imagename)
 	if not os.path.isfile("fonts/" + data["styles"][style]["font"]):
 		print("Downloading new Font")
 		urllib.request.urlretrieve(data["styles"][style]["font_url"], "fonts/" + data["styles"][style]["font"])
 
-	meme_font = ImageFont.truetype("fonts/" + data["styles"][style]["font"]  , data["styles"][style]["font_size"])
+	meme_font = ImageFont.truetype("fonts/" + data["styles"][style]["font"], data["styles"][style]["font_size"])
 
 	base = Image.open("images/" + imagename).convert('RGBA')
 	width, height = base.size
 	txt = Image.new('RGBA', base.size, (255,255,255,0))
 	d = ImageDraw.Draw(txt)
-	dif = (data["memes"][meme]["size"]["right"] - data["memes"][meme]["size"]["left"])
+	dif = (data["memes_text"][meme]["size"]["right"] - data["memes_text"][meme]["size"]["left"])
 	wrap = textwrap.wrap(" ".join(text.split()), width=dif/data["styles"][style]["font_size"])
-	offset += (data["memes"][meme]["size"]["bottom"]-offset)/2-(meme_font.getsize(wrap[0])[1]*len(wrap)/2)
-	if offset < data["memes"][meme]["size"]["up"]:
-		offset = data["memes"][meme]["size"]["up"]
+	offset += (data["memes_text"][meme]["size"]["bottom"]-offset)/2-(meme_font.getsize(wrap[0])[1]*len(wrap)/2)
+	if offset < data["memes_text"][meme]["size"]["up"]:
+		offset = data["memes_text"][meme]["size"]["up"]
 	for line in wrap:
-		d.text((margin+(data["memes"][meme]["size"]["center"]-meme_font.getsize(line)[0])/2, offset), line, font=meme_font, fill=data["styles"][style]["font_color"])
+		d.text((margin+(data["memes_text"][meme]["size"]["center"]-meme_font.getsize(line)[0])/2, offset), line, font=meme_font, fill=data["styles"][style]["font_color"])
 		offset += meme_font.getsize(text)[1]
-		if offset > data["memes"][meme]["size"]["bottom"] - meme_font.getsize(line)[1]:
+		if offset > data["memes_text"][meme]["size"]["bottom"] - meme_font.getsize(line)[1]:
 			break
 	out = Image.alpha_composite(base, txt)
 	out.save("server/" + servername + "/output/" + imagename);
 	print("Meme saved to: server/" + servername + "/output/" + imagename)
 	return "server/" + servername + "/output/" + imagename
 
-def nut_image(imagename, servername, channel):
-	print("Creating nutimage using " + imagename + " for server " + servername)
-	if not os.path.isfile("images/nutpic.png"):
+def meme_image(imagename, memename, servername):
+	print("Creating " + memename + " meme using " + imagename + " for server " + servername)
+	data = json.loads(urllib.request.urlopen('https://pastebin.com/raw/fAHJ6gbC').read().decode('utf-8'))
+	if not os.path.isfile("images/" + data["memes_images"][memename]["image"]):
 		print("Downloading new Images")
-		imagedownload("https://jii.moe/E1SNInYY-.png", "images/", "nutpic.png")
+		imagedownload(data["memes_images"][memename]["image_url"], "images/", data["memes_images"][memename]["image"])
 
-	frame = Image.open("images/nutpic.png").convert("RGBA")
-	pic = Image.open(imagename)
-	box = [179, 21, 852, 1134]
-	if pic.size[0] < pic.size[1]:
-		scale = (box[2]/pic.size[0])
-		pic = pic.resize((box[2],int(pic.size[1]*scale)), PIL.Image.ANTIALIAS)
+	frame = Image.open("images/" + data["memes_images"][memename]["image"]).convert("RGBA")
+	pic = Image.open(imagename).convert("RGBA")
+	if data["memes_images"][memename]["background"] == True:
+		box = data["memes_images"][memename]["box"]
+		if pic.size[0] < pic.size[1]:
+			scale = (box[2]/pic.size[0])
+			pic = pic.resize((box[2],int(pic.size[1]*scale)), PIL.Image.ANTIALIAS)
+			if pic.size[1] < box[3] - box[1]:
+				scale = (box[3]/pic.size[1])
+				pic = pic.resize(((int(pic.size[0]*scale),box[3])), PIL.Image.ANTIALIAS)
+		else:
+			scale = (box[3]/pic.size[1])
+			pic = pic.resize(((int(pic.size[0]*scale),box[3])), PIL.Image.ANTIALIAS)
+			if pic.size[0] < box[2] - box[0]:
+				scale = (box[2]/pic.size[0])
+				pic = pic.resize((box[2],int(pic.size[1]*scale)), PIL.Image.ANTIALIAS)
+		center = [(pic.size[0]-box[2])/2, (pic.size[1]-box[3])/2]
+		
+		pic = pic.crop((center[0],center[1],center[0]+box[2],center[1]+box[3]))
 
+		frame.paste(pic,(box[0],box[1]))
+		frame.save("server/" + servername + "/output/"+ data["memes_images"][memename]["image"]);
 	else:
-		scale = (box[3]/pic.size[1])
-		pic = pic.resize(((int(pic.size[0]*scale),box[3])), PIL.Image.ANTIALIAS)
-	center = [(pic.size[0]-box[2])/2, (pic.size[1]-box[3])/2]
-	
-	pic = pic.crop((center[0],center[1],center[0]+box[2],center[1]+box[3]))
-	
-	frame.paste(pic,(box[0],box[1]))
+		if pic.size[1] < frame.size[1]:
+			scale = (frame.size[1]/pic.size[1])
+			pic = pic.resize(((int(pic.size[0]*scale),frame.size[1])), PIL.Image.ANTIALIAS)
+		if pic.size[0] < frame.size[0]:
+			scale = (frame.size[0]/pic.size[0])
+			pic = pic.resize((frame.size[0],int(pic.size[1]*scale)), PIL.Image.ANTIALIAS)
+		if pic.size[1] < frame.size[1]:
+			scale = (frame.size[1]/pic.size[1])
+			pic = pic.resize(((int(pic.size[0]*scale),frame.size[1])), PIL.Image.ANTIALIAS)
+		if pic.size[0] < frame.size[0]:
+			scale = (frame.size[0]/pic.size[0])
+			pic = pic.resize((frame.size[0],int(pic.size[1]*scale)), PIL.Image.ANTIALIAS)
+		pic.paste(frame, (10, pic.size[1]-frame.size[1]-30),frame)
+		pic.save("server/" + servername + "/output/"+ data["memes_images"][memename]["image"]);
 
-	frame.save("server/" + servername + "/output/nutpic.png");
-	print("Nutpic saved to: server/" + servername + "/output/nutpic.png")
-	return("server/" + servername + "/output/nutpic.png")
+	print(memename + " meme saved to: server/" + servername + "/output/" + data["memes_images"][memename]["image"])
+	return("server/" + servername + "/output/" + data["memes_images"][memename]["image"])
 
 
-def shitimage(servername, channel):
+def shitimage(servername):
 	print("Creating shitimage for server " + servername)
 	imagename = random.choice(os.listdir("server/" + servername + "/images/"))
 	base = Image.open("server/" + servername + "/images/" + imagename).convert('RGBA')
@@ -300,11 +345,11 @@ def shitimage(servername, channel):
 		imagename = random.choice(os.listdir("images/"))
 		base = Image.open("images/" + imagename).convert('RGBA')
 		width, height = base.size
-		return meme_image(shitpost(servername, channel), servername)
+		return meme_text(shitpost(servername), servername)
 	else:
 		# make a blank image for the text, initialized to transparent text color
 		txt = Image.new('RGBA', base.size, (255,255,255,0))
-		quote = shitpost(servername, channel)
+		quote = shitpost(servername)
 		img_fraction = 0.50
 		dankfont = 'fonts/' + random.choice(os.listdir('fonts/'))
 		print(dankfont)
