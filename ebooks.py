@@ -1,4 +1,5 @@
-import discord, asyncio, logging, time, threading, markovify, psutil, posixpath, platform, re, requests, os, time, shutil, glob, textwrap, json
+import discord, asyncio, logging, time, threading, markovify, twitter, psutil, posixpath, platform, re, requests, os, time, shutil, glob, textwrap
+import json
 from pprint import pprint
 import random
 from random import randint
@@ -9,6 +10,7 @@ import PIL
 from PIL import ImageFont
 from PIL import Image
 from PIL import ImageDraw
+from pyfiglet import Figlet
 
 logging.basicConfig(level=logging.INFO)
 
@@ -18,7 +20,8 @@ if not os.path.exists("fonts/"):
 	os.makedirs("fonts")
 if not os.path.exists("server/"):
 	os.makedirs("server")
-	
+
+
 client = discord.Client()
 
 p = psutil.Process(os.getpid())
@@ -60,6 +63,10 @@ async def on_message(message):
 				imagedownload(attachment["proxy_url"], "server/" + servername + "/images/", attachment["filename"])
 				print(attachment)
 				image_in_message = True
+			images = re.findall('(?i)https?:\/\/.*\.(?:png|jpg|jpeg|gif)', message.clean_content)
+			for image in images:
+				image_in_message = True
+				imagedownload(image, "server/" + servername + "/images/")
 			with open("server/" + servername + "/log.txt", "a") as myfile:
 				if message.clean_content.endswith(".") or message.clean_content.endswith("!") or message.clean_content.endswith("?"):
 					 myfile.write(message.clean_content.replace("@", ""))
@@ -68,10 +75,6 @@ async def on_message(message):
 					message_to_bot = True
 				else:
 					myfile.write(message.clean_content.replace("@", "") + ". ")
-		images = re.findall('(?i)https?:\/\/.*\.(?:png|jpg|jpeg|gif)', message.clean_content)
-		for image in images:
-			image_in_message = True
-			imagedownload(image, "server/" + servername + "/images/")
 		if len(os.listdir("server/" + servername + "/images/")) > 0:
 			latest_file = max(glob.iglob("server/" + servername + "/images/*"), key=os.path.getctime)
 		else:
@@ -96,27 +99,48 @@ async def on_message(message):
 				regex = re.compile(r'('+remove+')', flags=re.IGNORECASE)
 				text = regex.sub("", message.clean_content).strip().lower()
 				data = json.loads(urllib.request.urlopen('https://pastebin.com/raw/fAHJ6gbC').read().decode('utf-8'))
-				if text in data["memes_images"]: 
+				if text in data["memes_images"]:
 					print("Meme: " + text)
-					await client.send_file(message.channel, meme_image(latest_file,text, servername))	
+					await client.send_file(message.channel, meme_image(latest_file,text, servername))
 				else:
 					available_memes = ""
-					for memes in data["memes_images"]:	
+					for memes in data["memes_images"]:
 						available_memes += memes + "\n"
 					await client.send_message(message.channel, "You need to choose one of the following memes: \n**" + available_memes + "**")
+			elif "ascii" in message.content.lower():
+				client.send_typing(message.channel)
+				emoji = re.findall('<(:\S*:)\d*>', message.clean_content)
+				print(emoji)
+				REMOVE_LIST = ["@", my_name , "ascii", "<:\S*:\d*>"]
+				remove = '|'.join(REMOVE_LIST)
+				regex = re.compile(r'('+remove+')', flags=re.IGNORECASE)
+				text = regex.sub("", message.clean_content).strip().upper()
+				f = Figlet(font='alphabet')
+				if not emoji:
+					await client.send_message(message.channel, "```" + f.renderText(text) + "```")
+				elif not text:
+					await client.send_message(message.channel, "You need to write some text")
+				else:
+					ascii_text = re.sub("\S", ''.join(emoji), (f.renderText(text)))
+					ascii_text = re.sub(" ", "       ", ascii_text)
+					await client.send_message(message.channel, "```" + ascii_text + "```")
 			elif " rate" in message.content.lower() or "rate " in message.content.lower():
 					rating = randint(1,10)
 					if rating == 10:
 						await client.send_message(message.channel, "i r8 8/8 m8")
 					else:
 						await client.send_message(message.channel, str(rating) + "/10 " + random.choice(["memepoints", "points", "goodboipoints", "faggotpoints"]) + ".")
+			elif " sleep" in message.content.lower() or "sleep " in message.content.lower():
+				kaga = urllib.request.urlopen('https://pastebin.com/raw/4DxVcG4n').read().decode('utf-8').split()
+				kaga_posting = random.choice (kaga)
+				await client.send_message(message.channel, kaga_posting)
 			elif message.content.endswith('?'):
 				if " or " in message.clean_content.lower():
 					REMOVE_LIST = ["@", my_name, "\?", "should I rather", "should I", "would you rather", "what do you prefer", "who do you prefer", "do you prefer", "what is better", "what should I do", "what could I do" , "would you prefer", "decide between", "what do you like more", "decide for me between"]
 					remove = '|'.join(REMOVE_LIST)
 					regex = re.compile(r'('+remove+')', flags=re.IGNORECASE)
 					shitdecision = re.split('; |, | Or | oR | or | OR |\n', regex.sub("", " ".join(re.sub(r'.*:', '', message.clean_content).split())))
-					shitdecision = " ".join(random.choice(shitdecision).format(message).split())
+					shitdecision = " ".join(random.choice(shitdecision).split())
 					await client.send_message(message.channel, shitdecision)
 				elif " who" in message.content.lower() or "who " in message.content.lower() or "who?" in message.content.lower():
 					if message.server:
@@ -124,9 +148,8 @@ async def on_message(message):
 					else:
 						await client.send_message(message.channel, random.choice(["you", "I"]))
 				else:
-					print(urllib.request.urlopen('https://pastebin.com/raw/90WCeZp9'))
 					yesno = urllib.request.urlopen('https://pastebin.com/raw/90WCeZp9').read().decode('utf-8').split()
-					shitanswer = random.choice (yesno).format(message)
+					shitanswer = random.choice (yesno)
 					await client.send_message(message.channel, shitanswer)
 			elif " pic" in message.content.lower() or "pic " in message.content.lower():
 				client.send_typing(message.channel)
@@ -179,7 +202,7 @@ This bot was created by **""" + (await client.application_info()).owner.name + "
 				await client.send_message(message.channel, discord.utils.oauth_url((await client.application_info())[0], permissions=None, server=None))
 			elif "set avatar " in message.content.lower():
 				print("new avatar: " + latest_file)
-				if message.author.id == (await client.application_info()).owner.id:
+				if message.author.id == "167392840580726784" or  message.author.id == (await client.application_info()).owner.id:
 					if image_in_message:
 						with open(latest_file, 'rb') as f:
 							await client.edit_profile(password=None,avatar=f.read())
@@ -189,7 +212,7 @@ This bot was created by **""" + (await client.application_info()).owner.name + "
 				else:
 					await client.send_message(message.channel, "**You are not allowed to do that!**")
 			elif "set username " in message.content.lower():
-				if message.author.id == (await client.application_info()).owner.id:
+				if message.author.id == "167392840580726784" or  message.author.id == (await client.application_info()).owner.id:
 					REMOVE_LIST = ["@", my_name , " set username "]
 					remove = '|'.join(REMOVE_LIST)
 					regex = re.compile(r'('+remove+')', flags=re.IGNORECASE)
@@ -212,7 +235,7 @@ def imagedownload(image, dir, filename=None):
 	if  "imgur" in image:
 		print("imgur sucks ass")
 	else:
-		print("Downloading: " + image)       
+		print("Downloading: " + image)
 		imagepath = urllib.parse.urlsplit(image).path
 		r = requests.get(image, stream=True)
 		if r.status_code == 200:
@@ -252,7 +275,7 @@ def meme_text(text, servername):
 	meme = randint(0,(len(data["memes_text"]) -1))
 	imagename = data["memes_text"][meme]["image"]
 
-	
+
 
 	margin = data["memes_text"][meme]["size"]["left"]
 	offset = data["memes_text"][meme]["size"]["up"]
@@ -311,7 +334,7 @@ def meme_image(imagename, memename, servername):
 				scale = (box[2]/pic.size[0])
 				pic = pic.resize((box[2],int(pic.size[1]*scale)), PIL.Image.ANTIALIAS)
 		center = [(pic.size[0]-box[2])/2, (pic.size[1]-box[3])/2]
-		
+
 		pic = pic.crop((center[0],center[1],center[0]+box[2],center[1]+box[3]))
 
 		frame.paste(pic,(box[0],box[1]))
