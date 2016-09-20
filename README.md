@@ -1,7 +1,8 @@
 # ebooks
 Creates markov-chains from text gathered in a discord server to then post them or write them on images.
+*And lots more*...
 
-Uses [discord.py](https://my.mixtape.moe/wbvtys.png), [markovify](https://github.com/jsvine/markovify) and [python-pillow](https://github.com/python-pillow/Pillow)
+Uses [discord.py](https://github.com/Rapptz/discord.py), [markovify](https://github.com/jsvine/markovify), [python-pillow](https://github.com/python-pillow/Pillow) and [pyfiglet](https://github.com/pwaller/pyfiglet)
 
 ## setup
 replace *token* on the last line
