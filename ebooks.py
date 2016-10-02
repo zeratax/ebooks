@@ -20,9 +20,10 @@ if not os.path.exists("fonts/"):
 	os.makedirs("fonts")
 if not os.path.exists("server/"):
 	os.makedirs("server")
-
+	print("created general folder structure")
 
 client = discord.Client()
+settings_ver = "2"
 
 p = psutil.Process(os.getpid())
 p.create_time()
@@ -39,6 +40,8 @@ async def on_message(message):
 	print("'" + message.clean_content + "'")
 	message_to_bot = False
 	image_in_message = False
+	settings = ""
+	bot_message = ""
 	if not message.author.bot:
 		for mention in message.mentions:
 			if mention.bot:
@@ -47,17 +50,31 @@ async def on_message(message):
 		print("message sent by " + message.author.name)
 		if message.server:
 			servername = message.server.name
+			owner = message.server.owner
+			if os.path.isfile("server/" + servername + "/settings.json"):
+				with open("server/" + servername + "/settings.json", "r") as settings_file:
+					settings = settings_file.read()
+					settings = json.loads(settings)
+			if not os.path.isfile("server/" + servername + "/settings.json") or settings["version"] != int(settings_ver):
+				with open("server/" + servername + "/settings.json", "w") as settings_file:
+					settings_file.write('{"version" : '+settings_ver+', "farewell": true, "farewell_text": "**Hope to see you soon $member <3**", "greetings": true, "greetings_text" : "**Welcome $mention to __$server__**!", "sadpanda": true, "meme_txt": "'+message.server.default_role.id+'", "meme_img": "'+message.server.default_role.id+'", "image": "'+message.server.default_role.id+'", "say": "'+message.server.owner.top_role.id+'", "ascii": "'+message.server.default_role.id+'", "rate": true, "sleep": true, "question": true, "info": "'+message.server.default_role.id+'", "help": "'+message.server.default_role.id+'", "options": "'+message.server.owner.top_role.id+'"}')
+					print("created new settings_file")
 			if message.server.me.nick:
 				my_name = message.server.me.nick
 			else:
 				my_name = client.user.name
+			if settings["version"] != int(settings_ver):
+				await client.send_message(message.server.owner, "**" + my_name + "has been updated, settings had to be reset.** These were your old: \n```javascript \n" + settings + "```")
 		else:
 			servername = "None"
+			owner = message.author
+			settings = json.loads('{"version" : '+settings_ver+', "sadpanda": true, "meme_txt": "none", "meme_img": "none", "image": "none", "say": "none", "ascii": "none", "rate": false, "sleep": false, "question": true, "info": "none", "help": "none", "options": "none"}')
 			my_name = client.user.name
 		if not os.path.exists("server/" + servername):
 			os.makedirs("server/" + servername)
 			os.makedirs("server/" + servername + "/images")
 			os.makedirs("server/" + servername + "/output")
+			print("created server folder structure for " + servername)
 		if not message_to_bot:
 			for attachment in message.attachments:
 				imagedownload(attachment["proxy_url"], "server/" + servername + "/images/", attachment["filename"])
@@ -68,7 +85,7 @@ async def on_message(message):
 			for image in images:
 				image_in_message = True
 				imagedownload(image, "server/" + servername + "/images/")
-			if mangas:
+			if mangas and settings["sadpanda"] == True:
 				gidlist = []
 				manga_info = ""
 				payload = json.loads('{"method" : "gdata", "gidlist" : [] }')
@@ -78,19 +95,22 @@ async def on_message(message):
 					payload["gidlist"].append([gid, gt])
 				url = 'http://g.e-hentai.org/api.php'
 				header = {'Content-type' : 'application/json'}
-				print(payload)
+				print("creating json request for mangas")
 
 				ex_response = requests.post(url, data=json.dumps(payload), headers=header)
 				if ex_response.status_code == 200:
 					manga_info = ex_response.json()
 					for manga in manga_info["gmetadata"]:
-						title_eng = re.sub(r'(?:\(|\[|\{)[^(?:\)|\]|\})]*(?:\)|\]|\})', '', manga["title"])
-						title_jpn = re.sub(r'(?:\(|\[|\{)[^(?:\)|\]|\})]*(?:\)|\]|\})', '', manga["title_jpn"])
+						title_eng = re.sub(r'(?:\(|\[|\{)[^(?:\)|\]|\})]*(?:\)|\]|\})', '', manga["title"]).strip()
+						title_jpn = re.sub(r'(?:\(|\[|\{)[^(?:\)|\]|\})]*(?:\)|\]|\})', '', manga["title_jpn"]).strip()
 						date = datetime.datetime.fromtimestamp(
-        					int(manga["posted"])
-    					).strftime('%Y-%m-%d %H:%M:%S')
-
-						bot_message = "__" + title_eng + "/" + title_jpn + "__\n **Category:** " + manga["category"] + "\n **Uploader:** " + manga["uploader"] + "\n **Posted:** " + date + "\n **Rating:** " + manga["rating"] + "\n **Thumb:** " + manga["thumb"] + "\n **Tags: **```" + str(manga["tags"]) + "```"
+							int(manga["posted"])
+						).strftime('%Y-%m-%d %H:%M:%S')
+						rating = ""
+						for i in range(round(float(manga["rating"])*2)):
+							rating += ":star:"
+						bot_message = "__" + title_eng + "** / **" + title_jpn + "__\n **Category:** " + manga["category"] + "\n **Uploader:** " + manga["uploader"] + "\n **Posted:** " + date + "\n **Rating:** " + rating + " (" + manga["rating"] + ")\n **Thumb:** " + manga["thumb"] + "\n **Tags: **```" + str(manga["tags"]) + "```"
+						print("posting manga info")
 						await client.send_message(message.channel, bot_message)
 				else:
 					manga_info = None
@@ -109,9 +129,67 @@ async def on_message(message):
 			meme_image(shitpost(servername), servername)
 			latest_file = max(glob.iglob("server/" + servername + "/images/*"), key=os.path.getctime)
 		if client.user.mentioned_in(message) or servername == "None":
-			if "meme_text" in message.content.lower():
+			if "roles" in message.content.lower() and message.author.id == (await client.application_info()).owner.id:
+				if servername == "None":
+					await client.send_message(message.channel, "This only works on servers.")
+				else:
+					bot_message = "**top role:** " + str(owner.top_role.name) + " **position:** " + str(owner.top_role.position) + "\n**default role:** " + str(message.server.default_role.name) + " **position:** " + str(message.server.default_role.position) + "\n**your roles are:** " + str(user_role_ids(message.author))
+					bot_message += " \n__role hierachy:__\n"
+					for roles in message.server.roles:
+						bot_message += "**name:** " + roles.name + " **position: **" + str(roles.position) + " **ID: **" + str(roles.id) + "\n"
+					await client.send_message(message.channel, bot_message)
+			elif "raw" in message.content.lower():
+				await client.send_message(message.channel, "`" + message.content + "`")
+			elif ( "settings" in message.content.lower() ) and ( message.author.id == owner.id or settings["options"] in user_role_ids(message.author) ):
 				client.send_typing(message.channel)
-				REMOVE_LIST = ["@", my_name , "meme_text"]
+				REMOVE_LIST = [client.user.mention[:2] + '!' + client.user.mention[2:], client.user.mention, my_name , "settings"]
+				if " set " in message.clean_content:
+					REMOVE_LIST.append("set")
+					remove = '|'.join(REMOVE_LIST)
+					regex = re.compile(r'('+remove+')', flags=re.IGNORECASE)
+					text = regex.sub("", message.content).strip().split(' ', 1)
+					if text[0] == "version":
+						await client.send_message(message.channel, "**Error:** you can't change the version.")
+					elif text[0] not in settings:
+						await client.send_message(message.channel, "**Error:** this option doesn't exist.")
+					else:
+						if text[1].lower() == "true":
+							settings[text[0]] = True
+						elif text[1].lower() == "false":
+							settings[text[0]] = False
+						elif text[1].lower() == "@everyone":
+							settings[text[0]] = message.server.default_role.id
+						elif text[1].lower().startswith("<"):
+							settings[text[0]] = text[1][3:21]
+						else:
+							settings[text[0]] = text[1]
+						await client.send_message(message.channel, "**Success:** set *" + text[0] + "* to " + text[1] + ".")
+						with open("server/" + servername + "/settings.json", "w") as settings_file:
+							json.dump(settings, settings_file)
+							print("updated settings_file")
+				elif " show" in message.clean_content:
+					bot_message = "----\n"
+					for key, value in settings.items():
+						if isinstance(value, (int, bool)):
+							value = str(value)
+						elif key != "farewell_text" and key != "greetings_text":
+							value = "<@&" + value + ">"
+						bot_message += "**Option:** " + key + " **Value:** " + value + "\n"
+					bot_message += "\n----"
+					await client.send_message(message.channel, bot_message)
+			elif ( "say" in message.content.lower() and message.channel_mentions ) and ( message.author.id == owner.id or settings["say"] in user_role_ids(message.author) ):
+				client.send_typing(message.channel)
+				REMOVE_LIST = ["@", my_name , "say" ,"#"]
+				for channel in message.channel_mentions:
+					REMOVE_LIST.append(channel.name)
+				remove = '|'.join(REMOVE_LIST)
+				regex = re.compile(r'('+remove+')', flags=re.IGNORECASE)
+				text = regex.sub("", message.clean_content).strip()
+				for channel in message.channel_mentions:
+					await client.send_message(channel, text)
+			elif ( "meme_text" in message.content.lower() or  "meme_txt" in message.content.lower() ) and ( ( message.author.id == owner.id or settings["meme_text"] in user_role_ids(message.author) ) ):
+				client.send_typing(message.channel)
+				REMOVE_LIST = ["@", my_name , "meme_text", "meme_txt"]
 				remove = '|'.join(REMOVE_LIST)
 				regex = re.compile(r'('+remove+')', flags=re.IGNORECASE)
 				text = regex.sub("", message.clean_content).strip()
@@ -120,9 +198,9 @@ async def on_message(message):
 					text = shitpost(servername)
 				print("Text: " + text)
 				await client.send_file(message.channel, meme_text(text, servername))
-			elif "meme_image" in message.content.lower():
+			elif ( "meme_image" in message.content.lower() or  "meme_img" in message.content.lower() ) and (( message.author.id == owner.id or settings["meme_image"] in user_role_ids(message.author) )):
 				client.send_typing(message.channel)
-				REMOVE_LIST = ["@", my_name , "meme_image", "(?i)https?:\/\/.*\.(?:png|jpg|jpeg|gif)"]
+				REMOVE_LIST = ["@", my_name , "meme_image", "meme_img", "(?i)https?:\/\/.*\.(?:png|jpg|jpeg|gif)"]
 				remove = '|'.join(REMOVE_LIST)
 				regex = re.compile(r'('+remove+')', flags=re.IGNORECASE)
 				text = regex.sub("", message.clean_content).strip().lower()
@@ -135,7 +213,7 @@ async def on_message(message):
 					for memes in data["memes_images"]:
 						available_memes += memes + "\n"
 					await client.send_message(message.channel, "You need to choose one of the following memes: \n**" + available_memes + "**")
-			elif "ascii" in message.content.lower():
+			elif "ascii" in message.content.lower() and (( message.author.id == owner.id or settings["ascii"] in user_role_ids(message.author) )):
 				client.send_typing(message.channel)
 				emoji = re.findall('<(:\S*:)\d*>', message.clean_content)
 				print(emoji)
@@ -144,25 +222,21 @@ async def on_message(message):
 				regex = re.compile(r'('+remove+')', flags=re.IGNORECASE)
 				text = regex.sub("", message.clean_content).strip().upper()
 				f = Figlet(font='alphabet')
-				if not emoji:
-					await client.send_message(message.channel, "```" + f.renderText(text) + "```")
-				elif not text:
+				if not text:
 					await client.send_message(message.channel, "You need to write some text")
 				else:
-					ascii_text = re.sub("\S", ''.join(emoji), (f.renderText(text)))
-					ascii_text = re.sub(" ", "       ", ascii_text)
-					await client.send_message(message.channel, "```" + ascii_text + "```")
-			elif " rate" in message.content.lower() or "rate " in message.content.lower():
+					await client.send_message(message.channel, "```" + f.renderText(text) + "```")
+			elif (" rate" in message.content.lower() or "rate " in message.content.lower()) and (settings["rate"] == True):
 					rating = randint(1,10)
 					if rating == 10:
 						await client.send_message(message.channel, "i r8 8/8 m8")
 					else:
 						await client.send_message(message.channel, str(rating) + "/10 " + random.choice(["memepoints", "points", "goodboipoints", "faggotpoints"]) + ".")
-			elif " sleep" in message.content.lower() or "sleep " in message.content.lower():
+			elif (" sleep" in message.content.lower() or "sleep " in message.content.lower() or "good night" in message.content.lower()) and (settings["sleep"] == True):
 				kaga = urllib.request.urlopen('https://pastebin.com/raw/4DxVcG4n').read().decode('utf-8').split()
 				kaga_posting = random.choice (kaga)
 				await client.send_message(message.channel, kaga_posting)
-			elif message.content.endswith('?'):
+			elif message.content.endswith('?') and (settings["question"] == True):
 				if " or " in message.clean_content.lower():
 					REMOVE_LIST = ["@", my_name, "\?", "should I rather", "should I", "would you rather", "what do you prefer", "who do you prefer", "do you prefer", "what is better", "what should I do", "what could I do" , "would you prefer", "decide between", "what do you like more", "decide for me between"]
 					remove = '|'.join(REMOVE_LIST)
@@ -179,10 +253,10 @@ async def on_message(message):
 					yesno = urllib.request.urlopen('https://pastebin.com/raw/90WCeZp9').read().decode('utf-8').split()
 					shitanswer = random.choice (yesno)
 					await client.send_message(message.channel, shitanswer)
-			elif " pic" in message.content.lower() or "pic " in message.content.lower():
+			elif (" pic" in message.content.lower() or "pic " in message.content.lower()) and ( ( message.author.id == owner.id or settings["pic"] in user_role_ids(message.author) ) ):
 				client.send_typing(message.channel)
 				await client.send_file(message.channel, shitimage(servername))
-			elif "info" in message.content.lower():
+			elif "info" in message.content.lower() and ( ( message.author.id == owner.id or settings["info"] in user_role_ids(message.author) ) ):
 				num_lines = 0
 				num_words = 0
 				num_chars = 0
@@ -200,8 +274,8 @@ I'm **""" + client.user.name + "**. I'm running on " + platform.dist()[0] + " *"
 I'm online since *""" + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(p.create_time())) + "* on *" + str(len(client.servers)) + """* servers.
 The log file for **""" + servername + "** is currently **" + str(num_words) + "** words and **" + str(num_chars) + "** characters long, with **" + str(sum(os.path.isfile(os.path.join("server/" + servername + "/images/", f)) for f in os.listdir("server/" + servername + "/images/")))+ """** images.
 This bot was created by **""" + (await client.application_info()).owner.name + "**#" + (await client.application_info()).owner.discriminator + " with :heart:")
-			elif "help" in message.content.lower():
-				await client.send_message(message.channel, """*Mention me with:*
+			elif "help" in message.content.lower() and ( ( message.author.id == owner.id or settings["help"] in user_role_ids(message.author) ) ):
+				await client.send_message(message.author, """*Mention me with:*
 
 **set username** to change my username *(this only works twice per hour)*
 
@@ -210,6 +284,14 @@ This bot was created by **""" + (await client.application_info()).owner.name + "
 **set avatar** to change my avatar
 
 	`""" + client.user.mention + """ set avatar http(s)://website.tld/imageurl`
+
+**settings set** to change a setting
+
+	`""" + client.user.mention + """ settings set option value`
+
+**settings show** shows the current settings
+
+	`""" + client.user.mention + """ settings show`
 
 **meme_text** to get a dank meme *(if no text is given a random sentence will be generated)*
 
@@ -230,17 +312,17 @@ This bot was created by **""" + (await client.application_info()).owner.name + "
 				await client.send_message(message.channel, discord.utils.oauth_url((await client.application_info())[0], permissions=None, server=None))
 			elif "set avatar " in message.content.lower():
 				print("new avatar: " + latest_file)
-				if message.author.id == "167392840580726784" or  message.author.id == (await client.application_info()).owner.id:
+				if message.author.id == (await client.application_info()).owner.id:
 					if image_in_message:
 						with open(latest_file, 'rb') as f:
 							await client.edit_profile(password=None,avatar=f.read())
-							await client.send_message(message.channel, "**Avatar set!**")
+							await client.send_message(message.author, "**Avatar set!**")
 					else:
 						await client.send_message(message.channel, "**No image given!**")
 				else:
 					await client.send_message(message.channel, "**You are not allowed to do that!**")
 			elif "set username " in message.content.lower():
-				if message.author.id == "167392840580726784" or  message.author.id == (await client.application_info()).owner.id:
+				if  message.author.id == (await client.application_info()).owner.id:
 					REMOVE_LIST = ["@", my_name , " set username "]
 					remove = '|'.join(REMOVE_LIST)
 					regex = re.compile(r'('+remove+')', flags=re.IGNORECASE)
@@ -258,6 +340,29 @@ This bot was created by **""" + (await client.application_info()).owner.name + "
 @client.event
 async def on_server_join(server):
 	await client.send_message(server.default_channel, "**Yahallo!** Please don't expect me to talk right away, I'm *very* shy :3")
+	await client.send_message(server.owner, "I was just added to your server. Most interactions with me work by mentioning me. For more help on command-usage use:\n`" + client.user.mention + " help`\n\nFor a documentation or more help visit:\nhttps://github.com/ZerataX/ebooks\nor message the creator of this bot **""" + (await client.application_info()).owner.name + "**#" + (await client.application_info()).owner.discriminator + ".")
+
+@client.event
+async def on_member_join(member):
+	with open("server/" + member.server.name + "/settings.json", "r") as settings_file:
+		settings = settings_file.read()
+		settings = json.loads(settings)
+		if settings["greetings"] == True:
+			await client.send_message(member.server.default_channel, str(settings["greetings_text"]).replace("$member", member.name).replace("$mention", member.mention).replace("$server", member.server.name))
+
+@client.event
+async def on_member_remove(member):
+	with open("server/" + member.server.name + "/settings.json", "r") as settings_file:
+		settings = settings_file.read()
+		settings = json.loads(settings)
+		if settings["farewell"] == True:
+			await client.send_message(member.server.default_channel, str(settings["farewell_text"]).replace("$member", member.name).replace("$mention", member.mention).replace("$server", member.server.name))
+
+def user_role_ids(user):
+	roles = []
+	for role in user.roles:
+		roles.append(role.id)
+	return roles
 
 def imagedownload(image, dir, filename=None):
 	if  "imgur" in image:
@@ -421,8 +526,8 @@ def shitimage(servername):
 		d.text((29,randheight - 1), quote, font=fnt, fill=(255,255,255,255))
 		d.text((30,randheight), quote, font=fnt, fill=(0,0,0,255))
 		out = Image.alpha_composite(base, txt)
-		out.save("server/" + servername + "/output/" + imagename);
+		out.save("server/" + servername + "/output/shitpost");
 		print(imagename)
-		return "server/" + servername + "/output/" + imagename
+		return "server/" + servername + "/output/shitpost"
 
 client.run('token')
