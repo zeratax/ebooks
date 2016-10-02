@@ -1,4 +1,4 @@
-import discord, asyncio, logging, time, threading, markovify, twitter, psutil, posixpath, platform, re, requests, os, time, shutil, glob, textwrap
+import discord, asyncio, logging, time, threading, markovify, twitter, psutil, posixpath, platform, re, requests, os, time, shutil, glob, textwrap, datetime
 import json
 from pprint import pprint
 import random
@@ -64,9 +64,37 @@ async def on_message(message):
 				print(attachment)
 				image_in_message = True
 			images = re.findall('(?i)https?:\/\/.*\.(?:png|jpg|jpeg|gif)', message.clean_content)
+			mangas = re.findall('(?i)https?:\/\/(?:ex|g.e-)hentai.org\/g\/(\S{6})\/(\S{10})\/', message.clean_content)
 			for image in images:
 				image_in_message = True
 				imagedownload(image, "server/" + servername + "/images/")
+			if mangas:
+				gidlist = []
+				manga_info = ""
+				payload = json.loads('{"method" : "gdata", "gidlist" : [] }')
+				for index, manga in enumerate(mangas):
+					gid = int(manga[0])
+					gt = manga[1]
+					payload["gidlist"].append([gid, gt])
+				url = 'http://g.e-hentai.org/api.php'
+				header = {'Content-type' : 'application/json'}
+				print(payload)
+
+				ex_response = requests.post(url, data=json.dumps(payload), headers=header)
+				if ex_response.status_code == 200:
+					manga_info = ex_response.json()
+					for manga in manga_info["gmetadata"]:
+						title_eng = re.sub(r'(?:\(|\[|\{)[^(?:\)|\]|\})]*(?:\)|\]|\})', '', manga["title"])
+						title_jpn = re.sub(r'(?:\(|\[|\{)[^(?:\)|\]|\})]*(?:\)|\]|\})', '', manga["title_jpn"])
+						date = datetime.datetime.fromtimestamp(
+        					int(manga["posted"])
+    					).strftime('%Y-%m-%d %H:%M:%S')
+
+						bot_message = "__" + title_eng + "/" + title_jpn + "__\n **Category:** " + manga["category"] + "\n **Uploader:** " + manga["uploader"] + "\n **Posted:** " + date + "\n **Rating:** " + manga["rating"] + "\n **Thumb:** " + manga["thumb"] + "\n **Tags: **```" + str(manga["tags"]) + "```"
+						await client.send_message(message.channel, bot_message)
+				else:
+					manga_info = None
+					print(ex_response)
 			with open("server/" + servername + "/log.txt", "a") as myfile:
 				if message.clean_content.endswith(".") or message.clean_content.endswith("!") or message.clean_content.endswith("?"):
 					 myfile.write(message.clean_content.replace("@", ""))
@@ -396,6 +424,5 @@ def shitimage(servername):
 		out.save("server/" + servername + "/output/" + imagename);
 		print(imagename)
 		return "server/" + servername + "/output/" + imagename
-
 
 client.run('token')
