@@ -240,6 +240,8 @@ async def on_message(message):
 						await client.send_message(message.channel, ":trophy: **"+message.author.name.upper()+" WON!** :trophy:")
 					else:
 						await client.send_message(message.channel, "maybe next time.")
+				else:
+					await client.send_message(message.channel,  "You need to choose one of the following memes: \n**dick**\n**slot_machine**")
 			elif ( "meme_text" in message.content.lower() or  "meme_txt" in message.content.lower() ) and ( ( message.author.id == owner.id or settings["meme_txt"] in user_role_ids(message.author) ) ):
 				client.send_typing(message.channel)
 				REMOVE_LIST = ["@", my_name , "meme_text", "meme_txt"]
@@ -326,7 +328,7 @@ async def on_message(message):
 I'm **""" + client.user.name + "**. I'm running on " + platform.dist()[0] + " *" + platform.dist()[1] + "* with python *" + platform.python_version() + "* using discord.py *" + discord.__version__ + """*.
 I'm online since *""" + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(p.create_time())) + "* on *" + str(len(client.servers)) + """* servers.
 The log file for **""" + servername + "** is currently **" + str(num_words) + "** words and **" + str(num_chars) + "** characters long, with **" + str(sum(os.path.isfile(os.path.join("server/" + servername + "/images/", f)) for f in os.listdir("server/" + servername + "/images/")))+ """** images.
-This bot was created by **""" + (await client.application_info()).owner.name + "**#" + (await client.application_info()).owner.discriminator + " with :heart:")
+This bot was created by **""" + (await client.application_info()).owner.name + "**#" + (await client.application_info()).owner.discriminator + " with :heart:\nSource: https://github.com/ZerataX/ebooks")
 			elif "help" in message.content.lower() and ( ( message.author.id == owner.id or settings["help"] in user_role_ids(message.author) ) ):
 				await client.send_message(message.author, """*Mention me with:*
 
