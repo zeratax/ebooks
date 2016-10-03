@@ -73,3 +73,5 @@ possible **variables** are:
 #### slot_machine
 set the slot machine items with
 `@ebooks settings set slot_machine emoji1 emoji2 emoji3 ... emojiN`
+
+![slot_machine](https://my.mixtape.moe/ljzych.gif)
