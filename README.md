@@ -24,11 +24,11 @@ https://discordapp.com/oauth2/authorize?client_id=189772464161685506&scope=bot
 
 	@ebooks set avatar http(s)://website.tld/imageurl
 
-**settings set** to change a setting
+**settings set** to change an option
 
 	@ebooks settings set option value
 
-**settings show** shows the current settings
+**settings show** shows the currently set options
 
 	@ebooks settings show
 
