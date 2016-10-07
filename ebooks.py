@@ -165,7 +165,7 @@ async def on_message(message):
 							rating = ""
 							for i in range(round(float(manga["rating"])*2)):
 								rating += ":star:"
-							if title_jpn:
+							if title_jpn != title_eng:
 								title = "__" + title_eng + "** / **" + title_jpn + "__"
 							else:
 								title = "__" + title_eng + "__"
