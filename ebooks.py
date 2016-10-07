@@ -233,7 +233,7 @@ async def on_message(message):
 				await client.send_message(message.channel, "`" + message.content + "`")
 			elif ( "settings" in message.content.lower() ) and ( message.author.id == owner.id or settings["options"] in user_role_ids(message.author) ):
 				client.send_typing(message.channel)
-				REMOVE_LIST = [client.user.mention[:2] + '!' + client.user.mention[2:], client.user.mention, my_name , "settings"]
+				REMOVE_LIST = [client.user.mention[:2] + '!' + client.user.mention[2:], client.user.mention, "settings"]
 				if " set " in message.content.lower():
 					REMOVE_LIST.append("set")
 					remove = '|'.join(REMOVE_LIST)
@@ -309,7 +309,7 @@ async def on_message(message):
 					await client.send_message(message.channel, "**Error:** Further arguments are needed, eg: `show, set`")
 			elif ( "say" in message.content.lower() and message.channel_mentions ) and ( message.author.id == owner.id or settings["say"] in user_role_ids(message.author) ):
 				client.send_typing(message.channel)
-				REMOVE_LIST = ["@", my_name , "say" ,"#"]
+				REMOVE_LIST = ["@" + my_name, "@", "say" ,"#"]
 				for channel in message.channel_mentions:
 					REMOVE_LIST.append(channel.name)
 				remove = '|'.join(REMOVE_LIST)
@@ -347,7 +347,7 @@ async def on_message(message):
 					await client.send_message(message.channel,  "**Error:** You need to choose one of the following memes: \n**dick**\n**slot_machine**")
 			elif ( "meme_text" in message.content.lower() or  "meme_txt" in message.content.lower() ) and ( ( message.author.id == owner.id or settings["meme_txt"] in user_role_ids(message.author) ) ):
 				client.send_typing(message.channel)
-				REMOVE_LIST = ["@", my_name , "meme_text", "meme_txt"]
+				REMOVE_LIST = ["@" + my_name, "@", "meme_text", "meme_txt"]
 				remove = '|'.join(REMOVE_LIST)
 				regex = re.compile(r'('+remove+')', flags=re.IGNORECASE)
 				text = regex.sub("", message.clean_content).strip()
@@ -358,7 +358,7 @@ async def on_message(message):
 				await client.send_file(message.channel, meme_text(text, serverid))
 			elif ( "meme_image" in message.content.lower() or  "meme_img" in message.content.lower() ) and (( message.author.id == owner.id or settings["meme_img"] in user_role_ids(message.author) )):
 				client.send_typing(message.channel)
-				REMOVE_LIST = ["@", my_name, "meme_image", "meme_img", "(?i)https?:\/\/.*\.(?:png|jpg|jpeg|gif)"]
+				REMOVE_LIST = ["@", "@" + my_name, "meme_image", "meme_img", "(?i)https?:\/\/.*\.(?:png|jpg|jpeg|gif)"]
 				remove = '|'.join(REMOVE_LIST)
 				regex = re.compile(r'('+remove+')', flags=re.IGNORECASE)
 				text = regex.sub("", message.clean_content).strip().lower()
@@ -375,7 +375,7 @@ async def on_message(message):
 				client.send_typing(message.channel)
 				emoji = re.findall('<(:\S*:)\d*>', message.clean_content)
 				print(emoji)
-				REMOVE_LIST = ["@", my_name , "ascii", "<:\S*:\d*>"]
+				REMOVE_LIST = ["@" + my_name, "@", "ascii", "<:\S*:\d*>"]
 				remove = '|'.join(REMOVE_LIST)
 				regex = re.compile(r'('+remove+')', flags=re.IGNORECASE)
 				text = regex.sub("", message.clean_content).strip().upper()
@@ -396,10 +396,10 @@ async def on_message(message):
 				await client.send_message(message.channel, kaga_posting)
 			elif message.content.endswith('?') and (settings["question"] == True):
 				if " or " in message.content.lower():
-					REMOVE_LIST = ["@", my_name, "\?", "should I rather", "should I", "would you rather", "what do you prefer", "who do you prefer", "do you prefer", "what is better", "what should I do", "what could I do" , "would you prefer", "decide between", "what do you like more", "decide for me between"]
+					REMOVE_LIST = ["@" + my_name, "@", "\?", "should I rather", "should I", "would you rather", "what do you prefer", "who do you prefer", "do you prefer", "what is better", "what should I do", "what could I do" , "would you prefer", "decide between", "what do you like more", "decide for me between"]
 					remove = '|'.join(REMOVE_LIST)
 					regex = re.compile(r'('+remove+')', flags=re.IGNORECASE)
-					shitdecision = re.split('; |, | Or | oR | or | OR |\n', regex.sub("", " ".join(re.sub(r'.*:', '', message.clean_content).split())))
+					shitdecision = re.split('; |, | Or | oR | or | OR |\n', regex.sub("", message.clean_content))
 					shitdecision = " ".join(random.choice(shitdecision).split())
 					await client.send_message(message.channel, shitdecision)
 				elif " who" in message.content.lower() or "who " in message.content.lower() or "who?" in message.content.lower():
@@ -734,5 +734,5 @@ async def status():
 	await client.change_presence(game=discord.Game( name=shitpost("None")))
 	await asyncio.sleep(300)
 	await status()
-
+	
 client.run('token')
