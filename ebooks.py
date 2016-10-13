@@ -23,6 +23,9 @@ if not os.path.exists("server/"):
 
 client = discord.Client()
 settings_ver = "5"
+data = json.loads(urllib.request.urlopen('https://pastebin.com/raw/fAHJ6gbC').read().decode('utf-8'))
+meme = randint(0,(len(data["memes_text"]) -1))
+latest_file = data["memes_text"][meme]["image_url"]
 
 p = psutil.Process(os.getpid())
 p.create_time()
@@ -93,17 +96,16 @@ async def on_message(message):
 			serverid = "None"
 			owner = message.author
 			my_name = client.user.name
-			settings = json.loads('{"slot_machine": [":pizza:", ":frog:", ":alien:", ":green_apple:", ":heart:"] }')
+			settings = json.loads('{"slot_machine": [":pizza:", ":frog:", ":alien:", ":green_apple:", ":heart:"], "sadpanda": true, "question": true }')
 		if not message_to_bot:
 			for attachment in message.attachments:
-				imagedownload(attachment["proxy_url"], "server/" + serverid + "/images/", attachment["filename"])
+				latest_file = attachment["proxy_url"]
 				image_in_message = True
 			images = re.findall('(?i)https?:\/\/.*\.(?:png|jpg|jpeg|gif)', message.content)
+			for image in images:
+				latest_file = image
 			sadpanda = re.findall('(?i)https?:\/\/(?:ex|g.e-)hentai.org\/g\/(\S{6})\/(\S{10})', message.content)
 			fakku = re.findall('(?i)https:\/\/(?:www\.)fakku\.net\/(?:hentai|manga)\/\S*', message.content)
-			for image in images:
-				image_in_message = True
-				imagedownload(image, "server/" + serverid + "/images/")
 			if settings["sadpanda"] == True:
 				if sadpanda:
 					gidlist = []
@@ -213,12 +215,6 @@ async def on_message(message):
 					message_to_bot = True
 				else:
 					myfile.write(message.clean_content.replace("@", "") + ". ")
-		if len(os.listdir("server/" + serverid + "/images/")) == 0:
-			data = json.loads(urllib.request.urlopen('https://pastebin.com/raw/fAHJ6gbC').read().decode('utf-8'))
-			meme = randint(0,(len(data["memes_text"]) -1))
-			imagename = data["memes_text"][meme]["image"]
-			imagedownload(data["memes_text"][meme]["image_url"], "server/" + serverid + "/images/", imagename)
-		latest_file = max(glob.iglob("server/" + serverid + "/images/*"), key=os.path.getctime)
 		if client.user.mentioned_in(message) or serverid == "None":
 			if "roles" in message.content.lower() and message.author.id == (await client.application_info()).owner.id:
 				if serverid == "None":
@@ -358,7 +354,7 @@ async def on_message(message):
 				await client.send_file(message.channel, meme_text(text, serverid))
 			elif ( "meme_image" in message.content.lower() or  "meme_img" in message.content.lower() ) and (( message.author.id == owner.id or settings["meme_img"] in user_role_ids(message.author) )):
 				client.send_typing(message.channel)
-				REMOVE_LIST = ["@", "@" + my_name, "meme_image", "meme_img", "(?i)https?:\/\/.*\.(?:png|jpg|jpeg|gif)"]
+				REMOVE_LIST = ["@" + my_name, "@", "meme_image", "meme_img", "(?i)https?:\/\/.*\.(?:png|jpg|jpeg|gif)"]
 				remove = '|'.join(REMOVE_LIST)
 				regex = re.compile(r'('+remove+')', flags=re.IGNORECASE)
 				text = regex.sub("", message.clean_content).strip().lower()
@@ -366,7 +362,7 @@ async def on_message(message):
 				print(text)
 				if text in data["memes_images"]:
 					print("Meme: " + text)
-					await client.send_file(message.channel, meme_image(latest_file,text, serverid))
+					await client.send_file(message.channel, meme_image(latest_file, text, serverid))
 				else:
 					for memes in data["memes_images"]:
 						bot_message += memes + "\n"
@@ -411,9 +407,6 @@ async def on_message(message):
 					yesno = urllib.request.urlopen('https://pastebin.com/raw/90WCeZp9').read().decode('utf-8').split()
 					shitanswer = random.choice (yesno)
 					await client.send_message(message.channel, shitanswer)
-			elif (" pic" in message.content.lower() or "pic " in message.content.lower()) and ( ( message.author.id == owner.id or settings["image"] in user_role_ids(message.author) ) ):
-				client.send_typing(message.channel)
-				await client.send_file(message.channel, shitimage(serverid))
 			elif "info" in message.content.lower() and ( ( message.author.id == owner.id or settings["info"] in user_role_ids(message.author) ) ):
 				if serverid == "None":
 					servername = "None"
@@ -463,10 +456,6 @@ This bot was created by """ + (await client.application_info()).owner.mention + 
 
 	`""" + client.user.mention + """ meme_image`
 
-**pic** to receive a custom image shitpost
-
-	`""" + client.user.mention + """ pic`
-
 **invite** to receive an invite link for another server
 
 	`""" + client.user.mention + """ invite`
@@ -502,10 +491,11 @@ A more detailed documentation is available here: https://github.com/ZerataX/eboo
 				else:
 					await client.send_message(message.author, discord.utils.oauth_url((await client.application_info())[0], permissions=None, server=None))
 			elif "set avatar " in message.content.lower():
-				print("new avatar: " + latest_file)
 				if message.author.id == (await client.application_info()).owner.id:
 					if image_in_message:
-						with open(latest_file, 'rb') as f:
+						print("new avatar: " + latest_file)
+						imagedownload(latest_file, "server/images", "avatar.png")
+						with open("server/images/avatar.png", 'rb') as f:
 							await client.edit_profile(password=None,avatar=f.read())
 							await client.send_message(message.author, "**Success:** Avatar set!")
 					else:
@@ -643,8 +633,11 @@ def meme_text(text, serverid):
 	print("Meme saved to: server/" + serverid + "/output/" + imagename)
 	return "server/" + serverid + "/output/" + imagename
 
-def meme_image(imagename, memename, serverid):
-	print("Creating " + memename + " meme using " + imagename + " for server " + serverid)
+def meme_image(imageurl, memename, serverid):
+	imagedownload(imageurl, "server/" + serverid + "/images", "meme_image")
+	imagename = "server/" + serverid + "/images/meme_image"
+	print("Creating " + memename + " meme using " + imageurl + " for server " + serverid)
+
 	data = json.loads(urllib.request.urlopen('https://pastebin.com/raw/fAHJ6gbC').read().decode('utf-8'))
 	if not os.path.isfile("images/" + data["memes_images"][memename]["image"]):
 		print("Downloading new Images")
