@@ -21,12 +21,10 @@ if not os.path.exists("server/"):
 	os.makedirs("server")
 	print("created general folder structure")
 
-client = discord.Client()
 settings_ver = "5"
-data = json.loads(urllib.request.urlopen('https://pastebin.com/raw/fAHJ6gbC').read().decode('utf-8'))
-meme = randint(0,(len(data["memes_text"]) -1))
-latest_file = data["memes_text"][meme]["image_url"]
+latest_file = random.choice(urllib.request.urlopen('https://pastebin.com/raw/90WCeZp9').read().decode('utf-8').split())
 
+client = discord.Client()
 p = psutil.Process(os.getpid())
 p.create_time()
 
@@ -41,6 +39,7 @@ async def on_ready():
 @client.event
 async def on_message(message):
 	print("'" + message.clean_content + "'")
+	global latest_file
 	message_to_bot = False
 	image_in_message = False
 	settings = ""
@@ -494,7 +493,7 @@ A more detailed documentation is available here: https://github.com/ZerataX/eboo
 				if message.author.id == (await client.application_info()).owner.id:
 					if image_in_message:
 						print("new avatar: " + latest_file)
-						imagedownload(latest_file, "server/images", "avatar.png")
+						imagedownload(latest_file, "server/images/", "avatar.png")
 						with open("server/images/avatar.png", 'rb') as f:
 							await client.edit_profile(password=None,avatar=f.read())
 							await client.send_message(message.author, "**Success:** Avatar set!")
@@ -634,7 +633,7 @@ def meme_text(text, serverid):
 	return "server/" + serverid + "/output/" + imagename
 
 def meme_image(imageurl, memename, serverid):
-	imagedownload(imageurl, "server/" + serverid + "/images", "meme_image")
+	imagedownload(imageurl, "server/" + serverid + "/images/", "meme_image")
 	imagename = "server/" + serverid + "/images/meme_image"
 	print("Creating " + memename + " meme using " + imageurl + " for server " + serverid)
 
