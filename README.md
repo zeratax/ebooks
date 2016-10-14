@@ -39,10 +39,6 @@ https://discordapp.com/oauth2/authorize?client_id=189772464161685506&scope=bot
 **meme_image** to get a meme_image *(uses the last posted image on the server)*
 
 	@ebooks meme_image
-
-**pic** to receive a custom image shitpost
-
-	@ebooks pic
   
 **animated** send an animated text message
 
