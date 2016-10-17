@@ -63,10 +63,14 @@ https://discordapp.com/oauth2/authorize?client_id=189772464161685506&scope=bot
 
 	@ebooks ascii string
 	
+**[information](#information)** sends the current stats
+
+	@ebooks info
+	
 **say** sends a message to all mentioned channels
 
 	@ebooks say string #channel-mention1 #channel-mention2 … #channel-mentionN
-
+	
 **invite** to receive an invite link for another server
 
 	@ebooks invite
@@ -90,6 +94,12 @@ Alias: `meme_txt, meme_text`
 
 ### meme image
 Alias: `meme_img, meme_image`
+
+### Information
+Alias: `info`
+
+![information](https://my.mixtape.moe/uqkoqc.png)
+
 ### ascii
 Turns text into ascii:
 
