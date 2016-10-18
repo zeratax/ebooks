@@ -1,0 +1,55 @@
+{
+  "memes_text": [
+    {
+      "image": "hambugaa.png",
+      "image_url": "https://jii.moe/EJQOuZ8FW.png",
+      "style": "manga00",
+      "size": {
+        "up": 30,
+        "left": 25,
+        "bottom": 275,
+        "right": 480,
+        "center": 150
+      }
+    },
+    {
+      "image" : "fuckingidiot.png",
+      "image_url": "https://my.mixtape.moe/bnpibg.png",
+      "style": "manga00",
+      "size": {
+        "up": 10,
+        "left": 0,
+        "bottom": 265,
+        "right": 440,
+        "center": 150
+      }
+    }
+  ],
+  "memes_images": {
+    "akihiko": {
+      "image": "Akihiko.png",
+      "image_url": "https://jii.moe/VyUhJxls-.png",
+      "background" : false
+    },
+    "nut": {
+      "image" : "nut.png",
+      "image_url": "https://jii.moe/E1SNInYY-.png",
+      "box" : [179, 21, 852, 1134],
+      "background": true
+    }
+  },
+  "styles": {
+    "manga00": {
+      "font": "MrSunshine.ttf",
+      "font_size": 36,
+      "font_color": "#000000",
+      "font_url": "https://jii.moe/VyksYZLKW.ttf"
+    },
+    "manga01": {
+      "font": "Typo_Round_Bold_Demo.otf",
+      "font_size": 21,
+      "font_color": "#FF0000",
+      "font_url": "https://jii.moe/NkfuY-8F-.otf"
+    }
+  }
+}
