@@ -53,7 +53,7 @@ https://discordapp.com/oauth2/authorize?client_id=189772464161685506&scope=bot
 
 **[meme image](#meme-image)** to get a meme_image *(uses the last posted image on the server)*
 
-	@ebooks meme_image
+	@ebooks meme_image meme
   
 **[animated](#animated-text)** send an animated text message
 
@@ -129,6 +129,10 @@ possible **variables** are:
 
 
 ##  Conversation
+Mention `@ebooks` and he will respond with a random sentence based on previous messages on the server (markov-chains).
+
+You need to exchange a few dozen messages for this to properly work.
+
 ### Questions
 Questions are messages with a bot mention and ending on a `?`
 
@@ -148,6 +152,8 @@ If you include the word `rate` in your message the bot will give a rating from 1
 # Settings
 ## settings set
 For commands that only a certain role should be able to use, you can just use a role mention.
+
+Every role that is higher in the role hierarchy will also have access to that command.
 
 Currently those are: 
 
@@ -225,8 +231,8 @@ Example:
 }
 ```
 the version key is need to add new options to the settings file.
+
 the long numbers resemble the role id.
-`189775065116573696` is the @everyone role
 
 # contributing
 Besides the usual code cleaning I should do and new memes, both commands [meme image](#meme-image) and [meme text](#meme-text) both use this json file: [info.json](info.json)
@@ -264,7 +270,7 @@ If you want to use a different font, you can define a new style like this:
     }
 }
 ```
-To add a new meme for [meme image](#meme-image) add an entry in this form: *(if background is set to true the original image will be placed on top)*
+To add a new meme for [meme image](#meme-image) add an entry in this form: *(if `background` is set to `true` the original image will be placed on top. `background_color` defines a background color for transparent images in RGBA notation.)*
 ```js
 {
   "memes_images": {
@@ -272,6 +278,7 @@ To add a new meme for [meme image](#meme-image) add an entry in this form: *(if 
       "image": "image name",
       "image_url": "image url",
       "background" : bool
+      "background_color" : [0,0,0,0] 
     }
   }
 }
