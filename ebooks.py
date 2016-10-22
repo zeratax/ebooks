@@ -1,10 +1,7 @@
-import discord, asyncio, logging, time, threading, markovify, twitter, psutil, posixpath, platform, re, requests, os, time, shutil, glob, textwrap, datetime, json
+import discord, asyncio, logging, time, threading, markovify, psutil, posixpath, platform, re, requests, os, time, shutil, glob, textwrap, datetime, json
 from pprint import pprint
 import random
 from random import randint
-import urllib
-from urllib import parse
-from urllib import request
 import PIL
 from PIL import ImageFont
 from PIL import Image
@@ -21,7 +18,7 @@ if not os.path.exists("server/"):
 	os.makedirs("server")
 	print("created general folder structure")
 
-settings_ver = "6"
+settings_ver = 6
 
 client = discord.Client()
 p = psutil.Process(os.getpid())
@@ -64,12 +61,12 @@ async def on_message(message):
 					settings = settings_file.read()
 					settings = json.loads(settings)
 			if settings != "":
-				current_settings_ver = str(settings["version"])
+				current_settings_ver = settings["version"]
 			else:
-				current_settings_ver = "0"
+				current_settings_ver = 0
 			if current_settings_ver != settings_ver:
 				with open("server/" + serverid + "/settings.json", "w") as settings_file:
-					settings_file.write('{"version" : '+settings_ver+', "farewell": false, "farewell_text": "**Hope to see you soon again, $member <3**", "greetings": false, "greetings_text" : "**Welcome $mention to __$server__**!", "fakku": true, "sadpanda": true,"animated": "'+message.server.default_role.id+'", "meme_txt": "'+message.server.default_role.id+'", "meme_img": "'+message.server.default_role.id+'", "image": "'+message.server.default_role.id+'", "say": "'+message.server.owner.top_role.id+'", "ascii": "'+message.server.default_role.id+'", "rate": true, "sleep": true, "question": true, "info": "'+message.server.default_role.id+'", "help": "'+message.server.default_role.id+'", "options": "'+message.server.owner.top_role.id+'", "slot_machine": [":pizza:", ":frog:", ":alien:", ":green_apple:", ":heart:"] }')
+					settings_file.write('{"version" : '+str(settings_ver)+', "farewell": false, "farewell_text": "**Hope to see you soon again, $member <3**", "greetings": false, "greetings_text" : "**Welcome $mention to __$server__**!", "fakku": true, "sadpanda": true,"animated": "'+message.server.default_role.id+'", "meme_txt": "'+message.server.default_role.id+'", "meme_img": "'+message.server.default_role.id+'", "image": "'+message.server.default_role.id+'", "say": "'+message.server.owner.top_role.id+'", "ascii": "'+message.server.default_role.id+'", "rate": true, "sleep": true, "question": true, "info": "'+message.server.default_role.id+'", "help": "'+message.server.default_role.id+'", "options": "'+message.server.owner.top_role.id+'", "slot_machine": [":pizza:", ":frog:", ":alien:", ":green_apple:", ":heart:"] }')
 					print("created new settings_file")
 			if message.server.me.nick:
 				my_name = message.server.me.nick
@@ -95,7 +92,7 @@ async def on_message(message):
 			my_name = client.user.name
 			settings = json.loads('{"slot_machine": [":pizza:", ":frog:", ":alien:", ":green_apple:", ":heart:"], "sadpanda": true, "fakku": true, "question": true }')
 		if not os.path.exists("server/" + serverid + "/images/last_image.png"):
-			image_download(random.choice(urllib.request.urlopen('https://pastebin.com/raw/90WCeZp9').read().decode('utf-8').split()), "server/" + serverid + "/images/", "last_image.png")
+			file_download(random.choice(requests.get('https://pastebin.com/raw/90WCeZp9').text.split()), "server/" + serverid + "/images/", "last_image.png")
 		with open("server/" + serverid + "/log.txt", "a") as myfile:
 				if message.clean_content.endswith(".") or message.clean_content.endswith("!") or message.clean_content.endswith("?") or message.clean_content.endswith("="):
 					 myfile.write(message.clean_content.replace("@", ""))
@@ -105,11 +102,11 @@ async def on_message(message):
 				else:
 					myfile.write(message.clean_content.replace("@", "") + ". ")
 		for attachment in message.attachments:
-			image_download(attachment["proxy_url"], "server/" + serverid + "/", "last_image.png")
+			file_download(attachment["proxy_url"], "server/" + serverid + "/", "last_image.png")
 			image_in_message = True
 		images = re.findall('(?i)https?:\/\/.*\.(?:png|jpg|jpeg|gif)', message.content)
 		for image in images:
-			image_download(image, "server/" + serverid + "/", "last_image.png")
+			file_download(image, "server/" + serverid + "/", "last_image.png")
 		if not message_to_bot:
 			sadpanda = re.findall('(?i)https?:\/\/(?:ex|g.e-)hentai.org\/g\/(\S{6})\/(\S{10})', message.content)
 			fakku = re.findall('(?i)https:\/\/(?:www\.)fakku\.net\/(?:hentai|manga)\/\S*', message.content)
@@ -180,7 +177,7 @@ async def on_message(message):
 							title = "__" + title_eng + "__"
 						bot_message += ":information_source: " + title + "\n **Category:** " + manga["category"] + language + artist + group + "\n **Posted:** " + date + "\n **Rating:** " + rating + " (" + manga["rating"] + ")\n **Tags:** " + parody + character + female + male + misc + "\n **Thumb:** " + manga["thumb"]
 						print("posting manga info")
-					await client.send_message(message.channel, bot_message)
+						await client.send_message(message.channel, bot_message)
 				else:
 					manga_info = None
 					print(ex_response)
@@ -190,7 +187,7 @@ async def on_message(message):
 					manga = manga.replace("hentai", "manga")
 					manga = manga.split('fakku.net', 1)[-1]
 					manga = "https://api.fakku.net" + manga
-					data = json.loads(urllib.request.urlopen(manga).read().decode('utf-8'))
+					data = requests.get(manga).json()
 					data = data["content"]
 					date = datetime.datetime.fromtimestamp(
 						int(data["content_date"])
@@ -218,7 +215,7 @@ async def on_message(message):
 					else:
 						description = ""
 					bot_message += ":information_source: __" + data["content_name"] + "__\n **Category:** " + data["content_category"] + artist_tag + parody_tag + "\n **Posted:** " + date + "\n **Favorites:** " + str(data["content_favorites"]) + " :heart:" + description + "\n **Tags: **" + tags[:-1][1:].replace("'", "")
-				await client.send_message(message.channel, bot_message)
+					await client.send_message(message.channel, bot_message)
 		if client.user.mentioned_in(message) or serverid == "None":
 			if "roles" in message.content.lower() and message.author.id == (await client.application_info()).owner.id:
 				if serverid == "None":
@@ -368,7 +365,7 @@ async def on_message(message):
 				remove = '|'.join(REMOVE_LIST)
 				regex = re.compile(r'('+remove+')', flags=re.IGNORECASE)
 				text = regex.sub("", message.clean_content).strip().lower()
-				data = json.loads(urllib.request.urlopen('https://pastebin.com/raw/fAHJ6gbC').read().decode('utf-8'))
+				data = requests.get('https://pastebin.com/raw/fAHJ6gbC').json()
 				print(text)
 				if text in data["memes_images"]:
 					print("Meme: " + text)
@@ -389,6 +386,8 @@ async def on_message(message):
 					await client.send_message(message.channel, ":x: **Error:** You need to write some text")
 				else:
 					await client.send_message(message.channel, ":a: :regional_indicator_s: :regional_indicator_c: :regional_indicator_i: :regional_indicator_i: \n```" + f.renderText(text) + "```")
+			elif "random" in message.content.lower() and "gallery" in message.content.lower():
+				await client.send_message(message.channel, ":link:http://pururin.us/gallery/" + str(randint(1,30000)))
 			elif (" rate" in message.content.lower() or "rate " in message.content.lower()) and (settings["rate"] == True):
 					rating = randint(1,10)
 					if rating == 10:
@@ -399,7 +398,7 @@ async def on_message(message):
 					await client.send_message(message.channel, bot_message)
 			elif (" sleep" in message.content.lower() or "sleep " in message.content.lower() or " night" in message.content.lower() or "night " in message.content.lower()) and (settings["sleep"] == True):
 				await client.send_typing(message.channel)
-				kaga = urllib.request.urlopen('https://pastebin.com/raw/4DxVcG4n').read().decode('utf-8').split()
+				kaga = requests.get('https://pastebin.com/raw/4DxVcG4n').text.split()
 				kaga_posting = random.choice (kaga)
 				await client.send_message(message.channel, ":sleeping_accommodation: " + kaga_posting)
 			elif message.content.endswith('?') and (settings["question"] == True):
@@ -416,7 +415,7 @@ async def on_message(message):
 					else:
 						await client.send_message(message.channel, ":bust_in_silhouette: " + random.choice(["you", "I"]))
 				else:
-					yesno = urllib.request.urlopen('https://pastebin.com/raw/90WCeZp9').read().decode('utf-8').split()
+					yesno = requests.get('https://pastebin.com/raw/90WCeZp9').text.split()
 					shitanswer = random.choice (yesno)
 					await client.send_message(message.channel, ":link:" + shitanswer)
 			elif "info" in message.content.lower() and ( ( message.author.id == owner.id or settings["info"] in user_role_ids(message.author) or discord.utils.get(message.server.roles, id=settings["info"]).position <= message.author.top_role.position ) ):
@@ -441,9 +440,9 @@ async def on_message(message):
 					user_count += server.member_count
 				await client.send_message(message.channel, """:information_source: *Information:*
 
-I'm :robot: **""" + client.user.name + "**. I'm running on " + platform.dist()[0] + " *" + platform.dist()[1] + "* with python :snake: *" + platform.python_version() + "* using discord.py *" + discord.__version__ + """*.
+I'm :robot: **""" + client.user.name + "**. I'm running on " + platform.dist()[0] + " *" + platform.dist()[1] + "* with :snake: python *" + platform.python_version() + "* using discord.py *" + discord.__version__ + """*.
 I've been online since :clock1: *""" + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(p.create_time())) + "* on **" + str(len(client.servers)) + """** servers with a total user count of :busts_in_silhouette: **""" + str(user_count) + """**.
-The log :card_box: file for **""" + servername + "** is currently **" + str(num_words) + "** words and **" + str(num_chars) + """** characters long.
+The :card_box: log file for **""" + servername + "** is currently **" + str(num_words) + "** words and **" + str(num_chars) + """** characters long.
 This bot was created by **""" + (await client.application_info()).owner.name + "**#" + (await client.application_info()).owner.discriminator + " with :heart:\nSource: :link:https://github.com/ZerataX/ebooks")
 			elif "help" in message.content.lower() and ( ( message.author.id == owner.id or settings["help"] in user_role_ids(message.author) or discord.utils.get(message.server.roles, id=settings["help"]).position <= message.author.top_role.position ) ):
 				await client.send_typing(message.channel)
@@ -566,12 +565,12 @@ A more detailed :page_facing_up: documentation is available here: :link:https://
 
 @client.event
 async def on_server_join(server):
-	await client.send_message(server.default_channel, "**Yahallo!** :heart: Please don't expect me to talk right away, I'm *very* shy :3")
-	await client.send_message(server.owner, "I was just added to your server, "+server.name+". Most interactions with me work by :speech_balloon: mentioning me. For me to work properly I need some time to gather enough text. For more :question: help on command-usage use:\n`" + client.user.mention + " help`\n\nFor a :page_facing_up: documentation or more help visit:\n:link:https://github.com/ZerataX/ebooks\nor message the creator of this :robot: bot " + (await client.application_info()).owner.name + "**#" + (await client.application_info()).owner.discriminator +  ".")
+	await client.send_message(server.default_channel, "**Yahallo!** :heart: Please don't expect me to talk right away, I'm *very* shy :3\nFor help please read: :link:https://github.com/ZerataX/ebooks or mention me with `help`")
+	await client.send_message(server.owner, "I was just added to your server, "+server.name+". Most interactions with me work by :speech_balloon: mentioning me. For me to work properly I need some time to gather enough text. For more :question: help on command-usage use:\n`" + client.user.mention + " help`\n\nFor a :page_facing_up: documentation or more help visit:\n:link:https://github.com/ZerataX/ebooks\nor message the creator of this :robot: bot **" + (await client.application_info()).owner.name + "**#" + (await client.application_info()).owner.discriminator +  ".")
 
 @client.event
 async def on_server_remove(server):
-	await client.send_message(server.owner, "WHY DON'T YOU LOVE ME! ;_;")
+	await client.send_message(server.owner, ":broken_heart: WHY DON'T YOU LOVE ME! ;_;")
 	await client.send_message(server.owner, "You can :envelope_with_arrow: invite me again with:\n:link:" +discord.utils.oauth_url((await client.application_info())[0], permissions=None, server=server))
 	await client.send_message(server.owner, "If you had any *trouble* or just want to give feedback you can message: " + (await client.application_info()).owner.mention + "\nor open an issue::link:https://github.com/ZerataX/ebooks/issues/new")
 
@@ -600,13 +599,13 @@ def user_role_ids(user):
 def substract(a, b):
 	return "".join(a.rsplit(b))
 
-def image_download(image, dir, filename=None):
-	if  "imgur" in image:
+def file_download(url, dir, filename=None):
+	if  "imgur" in url:
 		print("imgur sucks ass")
 	else:
-		print("Downloading: " + image)
-		imagepath = urllib.parse.urlsplit(image).path
-		r = requests.get(image, stream=True)
+		print("Downloading: " + url)
+		imagepath = url.split('/')[-1]
+		r = requests.get(url, stream=True)
 		if r.status_code == 200:
 			if filename:
 				print("Saving to: " + dir + filename)
@@ -653,10 +652,10 @@ def meme_text(text, serverid):
 
 	if not os.path.isfile("images/" + image_name):
 		print("Downloading new Images")
-		image_download(data["memes_text"][meme]["image_url"], "images/", image_name)
+		file_download(data["memes_text"][meme]["image_url"], "images/", image_name)
 	if not os.path.isfile("fonts/" + data["styles"][style]["font"]):
 		print("Downloading new Font")
-		urllib.request.urlretrieve(data["styles"][style]["font_url"], "fonts/" + data["styles"][style]["font"])
+		file_download(data["styles"][style]["font_url"], "fonts/", data["styles"][style]["font"])
 
 	meme_font = ImageFont.truetype("fonts/" + data["styles"][style]["font"], data["styles"][style]["font_size"])
 
@@ -686,7 +685,7 @@ def meme_image(image_name, memename, serverid):
 		data = json.loads(data)
 	if not os.path.isfile("images/" + data["memes_images"][memename]["image"]):
 		print("Downloading new Images")
-		image_download(data["memes_images"][memename]["image_url"], "images/", data["memes_images"][memename]["image"])
+		file_download(data["memes_images"][memename]["image_url"], "images/", data["memes_images"][memename]["image"])
 
 	frame = Image.open("images/" + data["memes_images"][memename]["image"]).convert("RGBA")
 	pic = Image.open("server/" + serverid + "/" + image_name).convert("RGBA")
@@ -742,6 +741,5 @@ async def status():
 	await client.change_presence(game=discord.Game( name=shitpost("None")))
 	await asyncio.sleep(300)
 	await status()
-
 	
 client.run('token')
