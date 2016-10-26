@@ -5,6 +5,7 @@ import glob
 import json
 import logging
 import markovify
+import nltk
 import os
 import platform
 import posixpath
@@ -51,9 +52,6 @@ async def on_ready():
 	print(client.user.name)
 	print(client.user.id)
 	print('------')
-	global statistics
-	today = get_date_today()
-	stats_update_user_count(statistics, today)
 	update_server_count()
 	await status()
 
@@ -400,6 +398,17 @@ async def on_message(message):
 			text = regex.sub("", message.clean_content).strip()
 			for channel in message.channel_mentions:
 				await client.send_message(channel, ":mega: " + text)
+		elif "find_by_id" in message.clean_content.lower():
+			REMOVE_LIST = ["@" + my_name, "@", "find_by_id"]
+			remove = '|'.join(REMOVE_LIST)
+			regex = re.compile(r'('+remove+')', flags=re.IGNORECASE)
+			command = regex.sub("", message.clean_content).strip().split(" ")
+			if len(command) < 2:
+				await client.send_message(message.channel, ":X: **Error:** Too few arguments")
+			if command[0] != "server" and command[0] != "user":
+				await client.send_message(message.channel, ":X: **Error:** This object is not supported")
+			else:
+				await client.send_message(message.channel, ":white_check_mark: **Success:**\n" + find_by_id(command[0], command[1:]))
 		elif ("animated" in message.content.lower()) and (message.author.id == owner.id or settings["animated"] in user_role_ids(message.author) or discord.utils.get(message.server.roles, id=settings["animated"]).position <= message.author.top_role.position):
 			if "dick" in message.content.lower():
 				bot_message = "8"
@@ -654,18 +663,12 @@ A more detailed :page_facing_up: documentation is available here: :link:https://
 
 @client.event
 async def on_server_join(server):
-	global statistics
-	today = get_date_today()
-	stats_update_user_count(statistics, today)
 	await client.send_message(server.default_channel, "**Yahallo!** :heart: Please don't expect me to talk right away, I'm *very* shy :3\nFor help please read: :link:https://github.com/ZerataX/ebooks or mention me with `help`")
 	await client.send_message(server.owner, "I was just added to your server, "+server.name+". Most interactions with me work by :speech_balloon: mentioning me. For me to work properly I need some time to gather enough text. For more :question: help on command-usage use:\n`" + client.user.mention + " help`\n\nFor a :page_facing_up: documentation or more help visit:\n:link:https://github.com/ZerataX/ebooks\nor message the creator of this :robot: bot **" + (await client.application_info()).owner.name + "**#" + (await client.application_info()).owner.discriminator + ".")
 
 
 @client.event
 async def on_server_remove(server):
-	global statistics
-	today = get_date_today()
-	stats_update_user_count(statistics, today)
 	await client.send_message(server.owner, ":broken_heart: WHY DON'T YOU LOVE ME! ;_;")
 	await client.send_message(server.owner, "You can :envelope_with_arrow: invite me again with:\n:link:" + discord.utils.oauth_url((await client.application_info())[0], permissions=None, server=server))
 	await client.send_message(server.owner, "If you had any *trouble* or just want to give feedback you can message: **" + (await client.application_info()).owner.name + "**#" + (await client.application_info()).owner.discriminator + "\nor open an issue::link:https://github.com/ZerataX/ebooks/issues/new")
@@ -673,9 +676,6 @@ async def on_server_remove(server):
 
 @client.event
 async def on_member_join(member):
-	global statistics
-	today = get_date_today()
-	stats_update_user_count(statistics, today)
 	with open("server/" + member.server.id + "/settings.json", "r") as settings_file:
 		settings = settings_file.read()
 		settings = json.loads(settings)
@@ -685,9 +685,6 @@ async def on_member_join(member):
 
 @client.event
 async def on_member_remove(member):
-	global statistics
-	today = get_date_today()
-	stats_update_user_count(statistics, today)
 	with open("server/" + member.server.id + "/settings.json", "r") as settings_file:
 		settings = settings_file.read()
 		settings = json.loads(settings)
@@ -776,8 +773,24 @@ def stats_update_user_count(statistics, date):
 			"user_count"] = server.member_count
 	stats_add_server(statistics, "None", date)
 	statistics["dates"][date]["servers"]["None"][
-		"user_count"] = server.member_count
+		"user_count"] = 0
 
+def find_by_id(object, ids):
+	result = ""
+	for id in ids:
+		if object == "server":
+			server = client.get_server(id)
+			if server:
+				result += server.name + "\n"
+			else:
+				result += "kicked\n"
+		elif object == "member" or object == "user":
+			member = discord.utils.get(client.get_all_members(), id=id)
+			if member:
+				result += member.name + "\n"
+			else:
+				result += "removed\n"
+	return result
 
 def shitpost(server_id):
 	print("Creating shitpost for server " + server_id)
@@ -785,16 +798,12 @@ def shitpost(server_id):
 		text = f.read()
 
 		text_model = markovify.Text(text)
-		shitpost = text_model.make_short_sentence(50)
+		shitpost = text_model.make_short_sentence(50, tries=100)
 		if shitpost is not None:
 			return shitpost
 		else:
-			shitpost = text_model.make_short_sentence(50)
-			if shitpost is not None:
-				return shitpost
-			else:
-				shitpost = "I require more messages before I correctly work"
-				return shitpost
+			shitpost = "I require more messages before I correctly work"
+			return shitpost
 
 
 def meme_text(text, server_id):
@@ -918,7 +927,7 @@ def meme_image(image_name, memename, server_id):
 
 
 def update_server_count():
-	print("updating status")
+	print("sending server count")
 	##### uncomment and replace token if you want to update your server count on bots.discord.pw #####
 	#payload = {"server_count": len(client.servers)}
 	#url = 'https://bots.discord.pw/api/bots/189777680982474753/stats'
@@ -926,14 +935,18 @@ def update_server_count():
 	#		  "bots.discord.pw-token"}
 	#response = requests.post(url, data=json.dumps(payload), headers=header)
 	#if response.status_code == 200:
-	#	print("status updated")
+	#	print("server count sent")
 	#else:
-	#	print("status update failed: " + response.status_code)
+	#	print("server count couldn't be updated: " + response.status_code)
 	####################################################################################################
-
+	
 async def status():
+	global statistics
+	today = get_date_today()
+	print("updating status. Date: " + today)
+	stats_update_user_count(statistics, today)
 	await client.change_presence(game=discord.Game(name=shitpost("None")))
-	await asyncio.sleep(300)
+	await asyncio.sleep(1000)
 	await status()
 
 
