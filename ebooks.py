@@ -1,29 +1,33 @@
-import asyncio
+
+import collections
 import datetime
 import discord
 import glob
+import Gnuplot
 import json
 import logging
 import markovify
 import nltk
+import numpy as np
 import os
-import platform
-import posixpath
-import psutil
-import threading
-import re
-import requests
-import shutil
-import textwrap
-import time
-from pprint import pprint
 import PIL
 from PIL import ImageFont
 from PIL import Image
 from PIL import ImageDraw
+import platform
+import posixpath
+from pprint import pprint
+import psutil
 from pyfiglet import Figlet
+import threading
 import random
 from random import randint
+import re
+import requests
+import shutil
+#import subprocess
+import textwrap
+import time
 
 
 logging.basicConfig(level=logging.INFO)
@@ -58,7 +62,7 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
-	print("'" + message.clean_content + "'")
+	#print("'" + message.clean_content + "'")
 	global statistics
 	message_to_bot = False
 	image_in_message = False
@@ -68,9 +72,9 @@ async def on_message(message):
 	today = get_date_today()
 	for mention in message.mentions:
 		if mention.bot:
-			print("message sent to bot")
+			#print("message sent to bot")
 			message_to_bot = True
-	print("message sent by " + message.author.name)
+	#print("message sent by " + message.author.name)
 	if message.server:
 		server_id = message.server.id
 		server_name = message.server.name
@@ -128,7 +132,7 @@ async def on_message(message):
 		if message.clean_content.endswith(".") or message.clean_content.endswith("!") or message.clean_content.endswith("?") or message.clean_content.endswith("="):
 			myfile.write(message.clean_content.replace("@", ""))
 		elif message.clean_content.startswith(("?", "!", "=", "`", "´", "^", ";", "~", "+", "\/", "\\", "]", "}", ")", ":", "<")):
-			print("message sent to bot")
+			#print("message sent to bot")
 			message_to_bot = True
 		else:
 			myfile.write(message.clean_content.replace("@", "") + ". ")
@@ -311,10 +315,13 @@ async def on_message(message):
 					"", message.content.lower()).strip().split(' ', 1)
 				if text[0] == "version":
 					await client.send_message(message.channel, ":x: **Error:** you can't change the version.")
+				elif server_id == "None":
+					await client.send_message(message.channel, ":x: **Error:** You can not change settings in privat messages.")
 				elif text[0] not in settings:
 					await client.send_message(message.channel, ":x: **Error:** this option doesn't exist.")
 				elif text[0] == "slot_machine":
 					settings["slot_machine"] = text[1].split()
+					await client.send_message(message.channel, ":white_check_mark: **Success:** set `" + text[0] + "` to `" + text[1] + "`.")
 				else:
 					if text[1] == "true":
 						settings[text[0]] = True
@@ -326,9 +333,6 @@ async def on_message(message):
 						settings[text[0]] = text[1][3:21]
 					else:
 						settings[text[0]] = text[1]
-				if server_id == "None":
-					await client.send_message(message.channel, ":x: **Error:** You can not change settings in privat messages.")
-				else:
 					await client.send_message(message.channel, ":white_check_mark: **Success:** set `" + text[0] + "` to `" + text[1] + "`.")
 				with open("server/" + server_id + "/settings.json", "w") as settings_file:
 					json.dump(settings, settings_file)
@@ -409,6 +413,25 @@ async def on_message(message):
 				await client.send_message(message.channel, ":X: **Error:** This object is not supported")
 			else:
 				await client.send_message(message.channel, ":white_check_mark: **Success:**\n" + find_by_id(command[0], command[1:]))
+		elif "stats" in message.clean_content.lower():
+			await client.send_typing(message.channel)
+			REMOVE_LIST = ["@" + my_name, "@", "stats"]
+			remove = '|'.join(REMOVE_LIST)
+			regex = re.compile(r'('+remove+')', flags=re.IGNORECASE)
+			command = regex.sub("", message.content).strip().split(" ")
+			command.pop(0)
+			if len(command) < 2:
+				await client.send_message(message.channel, ":X: **Error:** Too few arguments")
+			else:
+				if command[-1] == "png":
+					command.pop()
+					file_name =  get_stats_graph(command[1:], message, statistics)
+					await client.send_file(message.channel, file_name + "_graph.png")
+				else:
+					file_name =  get_stats_graph(command[1:], message, statistics)
+					with open(file_name + "_graph.txt") as f:
+						graph = f.read()
+					await client.send_message(message.channel, ":white_check_mark: **Success:**\n```js\n" + graph + "```")
 		elif ("animated" in message.content.lower()) and (message.author.id == owner.id or settings["animated"] in user_role_ids(message.author) or discord.utils.get(message.server.roles, id=settings["animated"]).position <= message.author.top_role.position):
 			if "dick" in message.content.lower():
 				bot_message = "8"
@@ -704,25 +727,23 @@ def substract(a, b):
 
 
 def get_date_today():
-	return time.strftime("%Y-%m-%d", time.localtime(p.create_time()))
+	return time.strftime("%Y-%m-%d")
 
 
-def file_download(url, dir, filename=None):
-	if "imgur" in url:
-		print("imgur sucks ass")
-	else:
-		print("Downloading: " + url)
+def file_download(url, dir, file_name=None):
+	if not "imgur" in url:
+		#print("Downloading: " + url)
 		imagepath = url.split('/')[-1]
 		r = requests.get(url, stream=True)
 		if r.status_code == 200:
-			if filename:
-				print("Saving to: " + dir + filename)
-				with open(dir + filename, 'wb') as f:
+			if file_name:
+				#print("Saving to: " + dir + file_name)
+				with open(dir + file_name, 'wb') as f:
 					r.raw.decode_content = True
 					shutil.copyfileobj(r.raw, f)
 			else:
 				with open(dir + posixpath.basename(imagepath), 'wb') as f:
-					print("Saving to: " + dir + posixpath.basename(imagepath))
+					#print("Saving to: " + dir + posixpath.basename(imagepath))
 					r.raw.decode_content = True
 					shutil.copyfileobj(r.raw, f)
 
@@ -732,6 +753,81 @@ def getUptime():
 	m, s = divmod(uptime, 60)
 	h, m = divmod(m, 60)
 	return "%d:%02d:%02d" % (h, m, s)
+
+def get_stats_graph(properties, message, statistics):
+	print(properties)
+	array = []
+	date_names = []
+	server_id = message.server.id
+	dates = collections.OrderedDict(sorted(statistics["dates"].items()))
+	for date, day in dates.items():
+		date_names.append(date)
+		if properties[0] == "here":
+			if len(properties) == 2:
+				property = properties[1]
+				if server_id in day["servers"]:
+					array.append(no_key_error(day["servers"][server_id], properties[1], 0))
+				else:
+					array.append(0)
+			if len(properties) == 3:
+				property = properties[2]
+				if message.mentions:
+					user_id = message.mentions[0].id
+				else:
+					user_id = properties[1]
+				if user_id in day["servers"][server_id]["users"]:
+					if server_id in day["servers"]:
+						array.append(no_key_error(day["servers"][server_id]["users"][user_id], properties[2], 0))
+					else:
+						array.append(0)
+				else:
+					array.append(0)
+		if properties[0] == "global":
+			result = 0
+			for server in day["servers"].values():
+				if len(properties) == 2:
+					property = properties[1]
+					result += no_key_error(server, properties[1], 0 )
+				if len(properties) == 3:
+					property = properties[2]
+					if message.mentions:
+						user_id = message.mentions[0].id
+					else:
+						user_id = properties[1]
+					if user_id in server["users"]:
+						result += no_key_error(server["users"][user_id], properties[2], 0)
+			array.append(result)
+	print(array)
+	print(date_names)
+	stats = ""
+	with open("images/stats.txt", "w") as f:
+		for index, value in enumerate(array):
+			stats += "%d %d\n" % (index+1, value)
+		f.write(stats)
+	file_name = "images/stats"
+	gnu_plot(file_name, "__statistics__", str(date_names), str(properties), property)
+	return file_name
+
+def no_key_error(object, key, standard):
+	if key in object:
+		return object[key]
+	else:
+		return standard
+
+def gnu_plot(file, label, x, y, title):
+	gp = Gnuplot.Gnuplot()
+	gp.title(label)
+	gp.xlabel(x)
+	gp.ylabel(y)
+	gp('set terminal dumb')
+	gp('set key left box')
+	gp('set output' + '"' + file + '_graph.txt"')
+	databuff = Gnuplot.File(file + '.txt', using='1:2',with_='line', title=title)
+	gp.plot(databuff)
+	gp('set terminal png')
+	gp('set output' + '"' + file + '_graph.png"')
+	gp.plot(databuff)
+	time.sleep(1.5)
 
 
 def stats_add_date(statistics, date):
@@ -924,7 +1020,6 @@ def meme_image(image_name, memename, server_id):
 	print(memename + " meme saved to: server/" + server_id +
 		  "/output/" + data["memes_images"][memename]["image"])
 	return("server/" + server_id + "/output/" + data["memes_images"][memename]["image"])
-
 
 def update_server_count():
 	print("sending server count")
