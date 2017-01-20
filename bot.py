@@ -14,6 +14,7 @@ client = discord.Client()
 
 @client.event
 async def on_ready():
+    # outputs general info about the bot
     if not hasattr(client, 'uptime'):
         client.uptime = datetime.datetime.utcnow()
     oauth = discord.utils.oauth_url(client.user.id)
@@ -30,26 +31,77 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
-    if message.author != client.user:
+    if client.user.mentioned_in(message) or message.server == None:
+        mentioned = True
+    # checks new message for keywords and calls the appropiate commands if
+    # found
+    if (message.author != client.user):
         for plugin in plugins['enabled']:
             for command, parameters in commands.commands[plugin].items():
-                for keyword in parameters['keywords']:
-                    if keyword in message.clean_content:
-                        await eval("modules['{}'].{}(client, message)".format(
-                            plugin, command))
-                        return
-        #await client.send_message(message.channel, "nice meme")
+                if not parameters['mention'] or mentioned:
+                    for keyword in parameters['keywords']:
+                        if keyword in message.clean_content:
+                            await eval("modules['{}'].{}(client, message)".format(
+                                plugin, command))
+                            return
+        # await client.send_message(message.channel, "nice meme")
+
+
+async def set_profile():
+    await client.edit_profile(username=bot['username'])
 
 
 def load_config():
     with open('config.json') as f:
         return json.load(f)
 
-async def set_profile():
-    await client.edit_profile(username=bot['username'])
+
+def load_plugins():
+    commands.commands = {}
+    for plugin in plugins['enabled']:
+        try:
+            modules[plugin] = importlib.import_module('plugins.' + plugin)
+            for command, parameters in commands.commands[plugin].items():
+                for keyword in parameters['keywords']:
+                    if keyword in keywords:
+                        warning = "WARNING: Keyword: '{}' is already used".format(
+                            keyword)
+                        logging.warning(warning)
+                    else:
+                        keywords.append(keyword)
+            logging.info("Plugin: {} has been loaded".format(plugin))
+        except Exception as e:
+            warning = """WARNING: Plugin: '{}' failed to load
+                        Reason:
+                        {}
+                        """.format(plugin, e)
+            logging.warning(warning)
+
+def unload_plugin(plugin):
+    try:
+        plugins['enabled'].remove(plugin)
+        commands.commands.pop(plugin, None)
+        logging.info("Plugin: {} has been unloaded".format(plugin))
+    except:
+        logging.info("Plugin: {} is not loaded".format(plugin))
+
+def load_plugin(plugin):
+    if not plugin in plugins['enabled']:
+        plugins['enabled'].append(plugin)
+        load_plugins()
+    else:
+        logging.info("Plugin: {} is already loaded".format(plugin))
 
 if __name__ == '__main__':
     config = load_config()
+
+    develop = any('develop' in arg.lower() for arg in sys.argv)
+    if develop:
+        bot = config['bot']['develop']
+    else:
+        bot = config['bot']['default']
+    token = bot['token']
+
     logger = logging.getLogger('discord')
 
     debug = any('debug' in arg.lower() for arg in sys.argv)
@@ -66,26 +118,10 @@ if __name__ == '__main__':
         '%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
     logger.addHandler(handler)
 
-    develop = any('develop' in arg.lower() for arg in sys.argv)
-    if develop:
-        bot = config['bot']['develop']
-    else:
-        bot = config['bot']['default']
-    token = bot['token']
-
     keywords = []
     modules = {}
     plugins = config['plugins']
     from plugins import commands
-    for plugin in plugins['enabled']:
-        modules[plugin] = importlib.import_module('plugins.' + plugin)
-        for command, parameters in commands.commands[plugin].items():
-            for keyword in parameters['keywords']:
-                if keyword in keywords:
-                    warning = "WARNING: Keyword: '{}' is already used".format(
-                        keyword)
-                    logging.warning(warning)
-                else:
-                    keywords.append(keyword)
+    load_plugins()
 
     client.run(token)
