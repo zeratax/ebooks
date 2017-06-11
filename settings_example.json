@@ -1,0 +1,53 @@
+{
+  "bot": {
+    "username": "Username",
+    "token": "bot token",
+    "avatar": "url",
+    "plugins": {
+      "enabled": [
+        "main",
+        "maths",
+        "nsfw",
+        "anime",
+        "statistics",
+        "memes",
+        "conversations"
+      ],
+      "banned": [
+      {
+      "plugin": "memes",
+      "command": "dick_animated"
+      }
+      ]
+    }
+  },
+  "plugins": {
+    "utilities": {
+      "commands": {
+        "save_interval": 60
+      }
+    },
+    "conversations": {
+        "offset": 100
+    },
+    "anime": {
+      "login": "username",
+      "token": "danbooru token",
+      "tags": "oyu_(sijimisizimi) rating:s",
+      "pages": 1
+    },
+    "maths":{
+      "latex_template": "template.tex",
+      "backgroundcolour": "36393E",
+      "foregroundcolour": "DBDBDB",
+      "dpi": 400
+    },
+    "memes": {
+      "slotmoji": [
+        ":ok_hand:",
+        ":100:",
+        ":heart:"
+      ]
+    }
+  }
+}
