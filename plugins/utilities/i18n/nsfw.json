@@ -1,0 +1,14 @@
+{
+  "german": {
+    "preview": "__{title}__\n**Kategorie**: {category}\n**Sprache{languages,plural,n}**: {languages,lst}\n**Künstler{artists,plural,s}**: {artists,lst}\n**Gruppe{groups,plural,n}**: {groups,lst}\n**Seiten**: {pages}\n**Uploader**: {uploader}\n**Erstellt am**: {date}\n{rating}\n**Parod{parodies,plural,ie,ien}**: {parodies,lst}\n**Tags**:\n  Charakter{characters,plural,e}: {characters,lst}\n  Frauen: {female_tags,lst}\n  Männer: {male_tags,lst}\n  Sonstiges: {misc_tags,lst}\n{thumbnail}\n",
+    "rating_fakku": "**Favoriten**: {} :heart:",
+    "rating_sadpanda": "**Bewertung**: ",
+    "api_dead": "API nicht verfügbar"
+  },
+  "english": {
+    "preview": " __{title}__\n**Category**: {category}\n**Language{languages,plural,s}**: {languages,lst}\n**Artist{artists,plural,s}**: {artists,lst}\n**Group{groups,plural,s}**: {groups,lst}\n**Pages**: {pages}\n**Uploader**: {uploader}\n**Posted on**: {date}\n{rating}\n**Parod{parodies,plural,y,ies}**: {parodies,lst}\n**Tags**:\n  Character{characters,plural,s}: {characters,lst}\n  Female: {female_tags,lst}\n  Male: {male_tags,lst}\n  Misc: {misc_tags,lst}\n{thumbnail}\n",
+    "rating_fakku": "**Favorites**: {} :heart:",
+    "rating_sadpanda": "**Rating**: ",
+    "api_dead": "API not available"
+  }
+}

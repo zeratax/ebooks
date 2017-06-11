@@ -1,0 +1,14 @@
+{
+    "english":{
+        "empty_expr_sym":"Too simple for me",
+        "empty_expr_tex":"Please enter a LaTeX expression",
+        "processing":"Calculating...",
+        "err_rendering":"An error has occurred, while rendering the expression!"
+    },
+    "german":{
+        "empty_expr_sym":"Bitte gib eine Gleichung an",
+        "empty_expr_tex":"Bitte gib einen LaTeX Befehl an",
+        "processing":"Rechne...",
+        "err_rendering":"Eine Fehler ist beim Rendern des Befehls aufgetretten!"
+    }
+}

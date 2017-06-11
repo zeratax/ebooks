@@ -1,0 +1,37 @@
+%&latex
+\documentclass[varwidth=true]{standalone}
+\usepackage{amsmath}
+\usepackage{color}
+\usepackage[usenames,dvipsnames,svgnames,table]{xcolor}
+\usepackage[utf8]{inputenc}
+\usepackage{siunitx}
+%\usepackage{ngerman}
+\usepackage{lmodern}
+\usepackage{graphicx}
+\usepackage{url}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{bigdelim}
+\usepackage{caption}
+\usepackage{amsmath}
+\usepackage{caption}
+\usepackage{siunitx}
+\nonstopmode
+\sisetup{separate-uncertainty, multi-part-units = brackets}
+\sisetup{exponent-product = \cdot, output-product = \cdot}
+\sisetup{range-phrase=-}
+\newcommand{\approxtext}[1]{\ensuremath{\stackrel{\text{#1}}{\approx}}}
+\newcommand{\equalstext}[1]{\ensuremath{\stackrel{\text{#1}}{=}}}
+\newcommand{\Rightarrowtext}[1]{\ensuremath{\stackrel{\text{#1}}{\Rightarrow}}}
+
+\definecolor{dstext}{HTML}{__TEXTCOLOUR__}
+\definecolor{dsbackground}{HTML}{__BGCOLOUR__}
+
+\begin{document}
+
+\color{dstext}
+\pagecolor{dsbackground}
+__DATA__
+
+\end{document}

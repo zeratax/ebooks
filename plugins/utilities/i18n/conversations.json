@@ -1,0 +1,17 @@
+{
+    "english":{
+        "more_msg":"I require more messages before I work correctly",
+        "no":"no",
+        "points": ["memepoints", "points", "goodboipoints", "faggotpoints"],
+        "full_points": "i r8 8/8 m8.\n",
+        "decide_re": "(?i)^((should I( rather)?)|(would you(( rather)|( prefer))?)|((what )?do you prefer)|(what ((should I)|(could I))|((what )?do you like))|(decide (for me )?between))",
+        "private_who": ["you", "I"]
+    },
+    "german":{
+        "more_msg":"Ich benötige mehr Nachrichten bevor ich vernünftig funktioniere",
+        "no":"nein",
+        "points": ["memepunkte", "punkte", "guterjungepunkte"],
+        "full_points": "5/7\n",
+        "private_who": ["Du", "Ich"]
+    }
+}

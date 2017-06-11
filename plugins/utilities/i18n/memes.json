@@ -1,0 +1,10 @@
+{
+  "german": {
+      "slot_win": "{} HAT GEWONNEN!",
+      "slot_lost": "vielleicht beim nächsten mal..."
+  },
+  "english": {
+      "slot_win": "{} WON!",
+      "slot_lost": "maybe next time..."
+  }
+}
