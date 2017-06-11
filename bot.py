@@ -1,127 +1,139 @@
 import discord
 import asyncio
 
+import argparse
 import datetime
-import importlib.util
 import json
 import logging
-import os
 import sys
 import warnings
 
+from plugins.utilities import config
+from plugins.utilities import commands
+
 client = discord.Client()
+modules = commands.modules
 
 
 @client.event
 async def on_ready():
-    # outputs general info about the bot
     if not hasattr(client, 'uptime'):
         client.uptime = datetime.datetime.utcnow()
-    oauth = discord.utils.oauth_url(client.user.id)
     await set_profile()
+    oauth = await get_oauth_url()
+    users = len(set(client.get_all_members()))
+    servers = len(client.servers)
 
+    # outputs general info about the bot
     print('------')
     print('Logged in as')
     print(client.user.name)
     print(client.user.id)
-    print(modules)
     print(oauth)
+    print(modules)
+    print('serving {0} users on {1} servers'.format(users, servers))
     print('------')
 
 
 @client.event
 async def on_message(message):
-    if client.user.mentioned_in(message) or message.server == None:
+    if client.user.mentioned_in(message) or message.server is None:
         mentioned = True
-    # checks new message for keywords and calls the appropiate commands if
-    # found
-    if (message.author != client.user):
-        for plugin in plugins['enabled']:
-            for command, parameters in commands.commands[plugin].items():
-                if not parameters['mention'] or mentioned:
-                    for keyword in parameters['keywords']:
-                        if keyword in message.clean_content:
-                            await eval("modules['{}'].{}(client, message)".format(
-                                plugin, command))
-                            return
-        # await client.send_message(message.channel, "nice meme")
+    else:
+        mentioned = False
+    # checks new message for keywords and calls the appropiate commands
+    await start_plugin(message, mentioned)
+
+
+@client.event
+async def on_reaction_add(reaction, user):
+    print(reaction.emoji)
 
 
 async def set_profile():
-    await client.edit_profile(username=bot['username'])
+    await client.edit_profile(username=config.c.bot_c['username'])
 
 
-def load_config():
-    with open('config.json') as f:
-        return json.load(f)
-
-
-def load_plugins():
-    commands.commands = {}
-    for plugin in plugins['enabled']:
-        try:
-            modules[plugin] = importlib.import_module('plugins.' + plugin)
-            for command, parameters in commands.commands[plugin].items():
-                for keyword in parameters['keywords']:
-                    if keyword in keywords:
-                        warning = "WARNING: Keyword: '{}' is already used".format(
-                            keyword)
-                        logging.warning(warning)
-                    else:
-                        keywords.append(keyword)
-            logging.info("Plugin: {} has been loaded".format(plugin))
-        except Exception as e:
-            warning = """WARNING: Plugin: '{}' failed to load
-                        Reason:
-                        {}
-                        """.format(plugin, e)
-            logging.warning(warning)
-
-def unload_plugin(plugin):
+async def get_oauth_url():
     try:
-        plugins['enabled'].remove(plugin)
-        commands.commands.pop(plugin, None)
-        logging.info("Plugin: {} has been unloaded".format(plugin))
-    except:
-        logging.info("Plugin: {} is not loaded".format(plugin))
+        data = await client.application_info()
+    except Exception as e:
+        return "Couldn't get invite link"
+    return discord.utils.oauth_url(data.id)
 
-def load_plugin(plugin):
-    if not plugin in plugins['enabled']:
-        plugins['enabled'].append(plugin)
-        load_plugins()
-    else:
-        logging.info("Plugin: {} is already loaded".format(plugin))
+
+async def start_plugin(message, mentioned):
+    # passive commands
+    try:
+        for plugin in commands.plugins['enabled']:
+            for command, parameters in commands.commands[plugin].items():
+                if parameters['passive']:
+                    eval("modules['{}'].{}(client, message)".format(
+                        plugin, command))
+    except Exception as e:
+        logger.warning(e, commands.get_error(e))
+    # active commands
+    try:
+        if (message.author != client.user):
+            for plugin in commands.plugins['enabled']:
+                for command, parameters in commands.commands[plugin].items():
+                    if not parameters['mention'] or mentioned:
+                        for keyword in parameters['keywords']:
+                            if all(words in message.clean_content.lower() for words in keyword.split(",")):
+                                await eval("modules['{}'].{}(client, message)".format(
+                                        plugin, command))
+                                return
+            # fallback function
+            if "conversations" in bot_plugins['enabled'] and mentioned:
+                await modules['conversations'].reply(client, message)
+    except Exception as e:
+        logger.warning(e, commands.get_error(e))
+        await client.send_message(message.channel, str(e))
+
 
 if __name__ == '__main__':
-    config = load_config()
+    parser = argparse.ArgumentParser(description='discord bot')
+    parser.add_argument("-c", "--config", help="Specify config file",
+                        metavar="FILE")
+    parser.add_argument("-v", "--verbose", help="increase output verbosity",
+                        action="store_true")
+    args = parser.parse_args()
 
-    develop = any('develop' in arg.lower() for arg in sys.argv)
-    if develop:
-        bot = config['bot']['develop']
-    else:
-        bot = config['bot']['default']
-    token = bot['token']
+    logger = commands.logger
 
-    logger = logging.getLogger('discord')
-
-    debug = any('debug' in arg.lower() for arg in sys.argv)
-    if debug:
-        print("logging at DEBUG level")
+    if args.verbose:
+        print("verbose output enabled")
         logger.setLevel(logging.DEBUG)
     else:
-        print("logging at WARNING level")
-        logger.setLevel(logging.WARNING)
+        logger.setLevel(logging.INFO)
 
-    handler = logging.FileHandler(
-        filename='ebooks.log', encoding='utf-8', mode='w')
-    handler.setFormatter(logging.Formatter(
-        '%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
+    logFormatter = logging.Formatter(
+        '%(asctime)s:%(levelname)s:%(name)s: %(message)s')
+    consoleFormatter = logging.Formatter(
+        '%(levelname)s:%(name)s: %(message)s')
+
+    handler = logging.FileHandler(filename='ebooks.log',
+                                  encoding='utf-8', mode='w')
+    handler.setFormatter(logFormatter)
     logger.addHandler(handler)
 
-    keywords = []
-    modules = {}
-    plugins = config['plugins']
-    from plugins import commands
-    load_plugins()
+    consoleHandler = logging.StreamHandler()
+    consoleHandler.setFormatter(consoleFormatter)
+    logger.addHandler(consoleHandler)
 
-    client.run(token)
+    if args.config:
+        config_file = args.config
+    else:
+        config_file = input("Please enter a config file: ")
+    config.set_config(config_file)
+
+
+    bot_token = config.c.bot_c['token']
+    bot_plugins = config.c.bot_c['plugins']
+    commands.plugins['enabled'] = bot_plugins['enabled']
+    commands.plugins['banned'] = bot_plugins['banned']
+
+    commands.load_plugins()
+    logger.debug(commands.commands)
+
+    client.run(bot_token)
