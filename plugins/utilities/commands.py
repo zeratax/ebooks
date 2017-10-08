@@ -146,6 +146,11 @@ async def save_plugins():
 def remove_keywords(client, string, plugin, command):
     string_clean = string.replace(client.user.mention, "")
     string_clean = string_clean.replace("@" + client.user.name, "")
+    for server in client.servers:
+        for member in server.members:
+            nickname = member.nick
+            if nickname:
+                string_clean = string_clean.replace("@" + nickname, "")
     for keyword in commands[plugin][command]["keywords"]:
         string_clean = string_clean.replace(keyword, "")
     return string_clean.strip()
