@@ -138,7 +138,7 @@ async def question(client, message):
     question = commands.remove_keywords(
         client, message.clean_content, "conversations", "question")
     if "or" in question:
-        question = re.sub(formatter.i18n.loc(
+        question = re.sub(i18n.loc(
             server_id, "conversations", "decide_re"), "", question)
         if question.endswith("more"):
             question = question.rsplit('more', 1)[0]
