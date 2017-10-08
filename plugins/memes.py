@@ -65,7 +65,10 @@ async def dick_animated(client, message):
 
 
 async def slot_machine(client, message):
-    user = message.author.nick
+    try:
+        user = message.author.nick
+    except AttributeError:
+        user = message.author.name
     choice = ["", "", ""]
     if message.server:
         server_id = message.server.id
